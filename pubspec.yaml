@@ -27,8 +27,10 @@ dependencies:
   # The 34px title bar in the design is ours, not Windows'.
   window_manager: ^0.4.3
 
-  # Recipe photos are dropped onto cards; nothing ships with the app.
-  desktop_drop: ^0.5.0
+  # Recipe photos are dropped onto cards on the desktop; nothing ships with
+  # the app. 0.7+ is required for Android — 0.5 still compiled against
+  # android-33, which its own dependencies have since outgrown.
+  desktop_drop: ^0.7.1
   cross_file: ^0.3.4+2
 
   # Backup / import / export in Settings, and picking a photo from disk.

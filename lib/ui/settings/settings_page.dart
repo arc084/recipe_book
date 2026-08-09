@@ -11,7 +11,12 @@ import '../widgets/primitives.dart';
 /// There is no onboarding — pairing and permissions live here from the first
 /// run.
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.isPhone = false});
+
+  /// On the phone the two databases are listed for their sizes only — backup,
+  /// import and export stay on the desktop, where the files are kept — and
+  /// pairing enters the six digits rather than showing them.
+  final bool isPhone;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -44,10 +49,13 @@ class _SettingsPageState extends State<SettingsPage> {
     final app = context.watch<AppState>();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+      padding: EdgeInsets.fromLTRB(widget.isPhone ? 16 : 24, 20,
+          widget.isPhone ? 16 : 24, 30),
       children: [
-        Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 3),
+        if (!widget.isPhone) ...[
+          Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 3),
+        ],
         Text(
           'No account, no server. Everything here is this device only unless '
           'it says otherwise.',
@@ -111,9 +119,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 AppButton(
-                  'Pair a device',
+                  // Pairing is typed, not scanned. The device being added to
+                  // shows the digits; the one joining enters them.
+                  widget.isPhone ? 'Enter a code' : 'Pair a device',
                   kind: ButtonKind.primary,
-                  onPressed: () => _showPairingCode(context, app),
+                  onPressed: () => widget.isPhone
+                      ? _enterPairingCode(context)
+                      : _showPairingCode(context, app),
                 ),
               ],
             ),
@@ -283,14 +295,76 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  /// The joining device's half of pairing: six digits, typed.
+  void _enterPairingCode(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        final t = context.tokens;
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(t.space(6)),
+            decoration: BoxDecoration(
+              color: t.surface,
+              borderRadius: t.brLarge,
+              boxShadow: t.shadowLg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Enter the code',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                SizedBox(height: t.space(2)),
+                Text(
+                  'Six digits, shown on the device you are pairing with. No '
+                  'camera needed for a one-off setup.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: t.bodyFamily,
+                    fontSize: 12,
+                    height: 1.5,
+                    color: t.textMuted,
+                  ),
+                ),
+                SizedBox(height: t.space(4)),
+                AppTextField(
+                  controller: controller,
+                  hint: '000000',
+                  height: 52,
+                  fontSize: 24,
+                  autofocus: true,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                ),
+                SizedBox(height: t.space(4)),
+                AppButton(
+                  'Pair',
+                  kind: ButtonKind.primary,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ── Databases ───────────────────────────────────────────────────────────
 
   Widget _databasesSection(BuildContext context, AppState app) {
     return _Section(
       title: 'Databases',
-      subtitle: 'Two of them, listed separately. Each has its own back up, '
-          'import and export, so a library can be replaced without touching '
-          'the pantry.',
+      subtitle: widget.isPhone
+          ? 'Listed here for their sizes. Backup, import and export stay on '
+              'the desktop, where the files are kept.'
+          : 'Two of them, listed separately. Each has its own back up, '
+              'import and export, so a library can be replaced without '
+              'touching the pantry.',
       child: Column(
         children: [
           _databaseRow(
@@ -411,9 +485,11 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
-          AppButton('Back up', fontSize: 11.5, onPressed: onExport),
-          const SizedBox(width: 7),
-          AppButton('Import', fontSize: 11.5, onPressed: onImport),
+          if (!widget.isPhone) ...[
+            AppButton('Back up', fontSize: 11.5, onPressed: onExport),
+            const SizedBox(width: 7),
+            AppButton('Import', fontSize: 11.5, onPressed: onImport),
+          ],
         ],
       ),
     );

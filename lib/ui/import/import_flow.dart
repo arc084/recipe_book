@@ -36,6 +36,16 @@ abstract final class ImportFlow {
     );
   }
 
+  /// Straight to step 2 with an address already in hand — the phone's share
+  /// sheet, or the clipboard offered by name on the Library's ＋.
+  static Future<void> startWithUrl(BuildContext context, String url) async {
+    final parsed = await _read(context, _ImportSource(url: url));
+    if (parsed == null || !context.mounted) return;
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(builder: (_) => _ReviewScreen(parsed: parsed)),
+    );
+  }
+
   static Future<ParsedRecipe?> _read(
     BuildContext context,
     _ImportSource source,
