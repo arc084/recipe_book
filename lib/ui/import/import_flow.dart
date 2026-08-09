@@ -929,21 +929,6 @@ class _MatchScreenState extends State<_MatchScreen> {
                     _MatchKind.unmatched => TagStyle.outline,
                   },
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    switch (match.kind) {
-                      _MatchKind.linked => 'inherits its macros',
-                      _MatchKind.branded => 'keeps its own macros',
-                      _MatchKind.unmatched => 'no macros — never counted as 0',
-                    },
-                    style: TextStyle(
-                      fontFamily: t.bodyFamily,
-                      fontSize: 11,
-                      color: t.textFaint,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),

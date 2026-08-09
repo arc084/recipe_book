@@ -590,15 +590,58 @@ class RecipePhoto extends StatelessWidget {
       return _Placeholder(text: placeholder, hovering: hovering);
     }
 
-    final image = Image.file(
+    return LayoutBuilder(
+      builder: (context, constraints) => _paint(
+        context,
+        t,
+        _decoded(context, constraints),
+      ),
+    );
+  }
+
+  /// The photograph, decoded no larger than the box it is drawn into.
+  ///
+  /// Photos come from the user's camera, so a 12-megapixel file filling a
+  /// 104px card is normal. Decoding that at source size costs ~48 MB of bitmap
+  /// per image, and a gridful will exhaust the texture memory Impeller has to
+  /// play with — on device that shows up not as an exception but as a frame
+  /// that never paints, leaving the previous surface on screen. Sizing the
+  /// decode to the layout keeps it to what is actually drawn.
+  Widget _decoded(BuildContext context, BoxConstraints constraints) {
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+
+    int? cap(double extent) {
+      if (!extent.isFinite || extent <= 0) return null;
+      return (extent * ratio).round();
+    }
+
+    return Image.file(
       File(path!),
       fit: fit,
       width: double.infinity,
       height: double.infinity,
+      cacheWidth: cap(constraints.maxWidth),
+      cacheHeight: cap(constraints.maxHeight),
+      // Downscaling by this much needs better than nearest-neighbour.
+      filterQuality: FilterQuality.medium,
       errorBuilder: (_, _, _) =>
           _Placeholder(text: placeholder, hovering: hovering),
     );
+  }
 
+  Widget _paint(BuildContext context, AppTokens t, Widget image) {
+    // Both treatments wrap the photo in a layer, and a layer is not bound by
+    // the widget's own box: Nocturne's `lighten` against the ground turns
+    // every transparent pixel in that layer into solid ground, so the filter
+    // paints across whatever bounds the layer ends up with. Where an ancestor
+    // already clips — the Library card's rounded container — that goes
+    // unnoticed; where nothing does, the photo paints straight over the
+    // content beneath it until it scrolls out of view. Clipping here makes the
+    // slot the limit, wherever the photo is used.
+    return ClipRect(child: _treated(context, t, image));
+  }
+
+  Widget _treated(BuildContext context, AppTokens t, Widget image) {
     return switch (t.photoTreatment) {
       PhotoTreatment.lightenOntoGround => ColorFiltered(
           colorFilter: ColorFilter.mode(t.ground, BlendMode.lighten),
