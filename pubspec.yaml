@@ -1,0 +1,66 @@
+name: recipe_book
+description: "Private, local-only recipe manager for Windows and Android."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State. Plain ChangeNotifier stores surfaced through provider — the app is
+  # small enough that anything heavier would be ceremony.
+  provider: ^6.1.2
+
+  # The two database files live in the platform's app-support directory.
+  path_provider: ^2.1.4
+
+  # Stable ids for every record, so sync has something to reconcile on.
+  uuid: ^4.5.1
+
+  # Dates on the meal plan.
+  intl: ^0.20.2
+
+  # The 34px title bar in the design is ours, not Windows'.
+  window_manager: ^0.4.3
+
+  # Recipe photos are dropped onto cards; nothing ships with the app.
+  desktop_drop: ^0.5.0
+  cross_file: ^0.3.4+2
+
+  # Backup / import / export in Settings, and picking a photo from disk.
+  file_selector: ^1.0.3
+
+  # Import from web: fetch the page, then read the recipe off it.
+  http: ^1.2.2
+  html: ^0.15.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/fonts/
+
+  # Bundled, never fetched — the app is offline by design.
+  # All three are variable fonts; weights are selected with FontVariation in
+  # the theme rather than by shipping static instances.
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf
+    - family: Figtree
+      fonts:
+        - asset: assets/fonts/Figtree-Variable.ttf
+    # Organic's heading face. Replaces Caprasimo, which the handoff flagged as
+    # too heavy at interface sizes.
+    - family: Baloo2
+      fonts:
+        - asset: assets/fonts/Baloo2-Variable.ttf
