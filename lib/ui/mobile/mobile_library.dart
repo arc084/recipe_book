@@ -6,6 +6,7 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../../theme/tokens.dart';
 import '../import/import_flow.dart';
+import '../widgets/photo_picker.dart';
 import '../widgets/primitives.dart';
 import 'mobile_recipe.dart';
 import 'mobile_suggestions.dart';
@@ -312,9 +313,17 @@ class _PhoneCard extends StatelessWidget {
           children: [
             SizedBox(
               height: 104,
-              child: RecipePhoto(
-                path: recipe.photoPath,
-                placeholder: '${recipe.title} photo',
+              child: GestureDetector(
+                onLongPress: () async {
+                  final ok = await pickRecipePhoto(context, recipe.id);
+                  if (ok && context.mounted) {
+                    phoneToast(context, 'Photo saved with the recipe');
+                  }
+                },
+                child: RecipePhoto(
+                  path: recipe.photoPath,
+                  placeholder: '${recipe.title} photo',
+                ),
               ),
             ),
             Expanded(

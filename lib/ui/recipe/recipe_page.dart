@@ -9,6 +9,7 @@ import '../../state/app_state.dart';
 import '../../state/nav.dart';
 import '../../theme/tokens.dart';
 import '../cook/cook_mode.dart';
+import '../widgets/photo_picker.dart';
 import '../widgets/primitives.dart';
 import 'recipe_edit.dart';
 
@@ -95,7 +96,8 @@ class _RecipePageState extends State<RecipePage> {
           setState(() => _dragOver = false);
           final file = detail.files.firstOrNull;
           if (file == null) return;
-          context.read<AppState>().setRecipePhoto(recipe.id, file.path);
+          if (!looksLikeImage(file.path)) return;
+          context.read<AppState>().adoptRecipePhoto(recipe.id, file.path);
         },
         child: Stack(
           fit: StackFit.expand,

@@ -7,6 +7,7 @@ import '../../domain/units.dart';
 import '../../state/app_state.dart';
 import '../../theme/tokens.dart';
 import '../cook/cook_mode.dart';
+import '../widgets/photo_picker.dart';
 import '../widgets/primitives.dart';
 import 'mobile_widgets.dart';
 
@@ -47,12 +48,24 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
           SliverToBoxAdapter(
             child: Stack(
               children: [
+                // Dropping a file is a desktop gesture, so on the phone the
+                // photo area is tapped instead.
                 SizedBox(
                   height: 220,
                   width: double.infinity,
-                  child: RecipePhoto(
-                    path: recipe.photoPath,
-                    placeholder: '${recipe.title} photo',
+                  child: GestureDetector(
+                    onTap: () async {
+                      final ok = await pickRecipePhoto(context, recipe.id);
+                      if (ok && context.mounted) {
+                        phoneToast(context, 'Photo saved with the recipe');
+                      }
+                    },
+                    child: RecipePhoto(
+                      path: recipe.photoPath,
+                      placeholder: recipe.photoPath == null
+                          ? 'Tap to add a photo'
+                          : '${recipe.title} photo',
+                    ),
                   ),
                 ),
                 Positioned.fill(

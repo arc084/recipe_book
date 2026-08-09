@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../data/database.dart';
 import '../data/models.dart';
@@ -170,6 +172,45 @@ class AppState extends ChangeNotifier {
   void setRecipePhoto(String recipeId, String path) {
     recipe(recipeId)?.photoPath = path;
     _touchLibrary();
+  }
+
+  /// Takes a copy of [sourcePath] into the app's own storage and points the
+  /// recipe at that.
+  ///
+  /// Photographs are supplied by the user and stored with the library, so the
+  /// app must not depend on wherever the file came from: a desktop drop can be
+  /// from a folder that later moves, and Android hands back a path inside a
+  /// cache directory that the system is free to clear.
+  Future<void> adoptRecipePhoto(String recipeId, String sourcePath) async {
+    final r = recipe(recipeId);
+    if (r == null) return;
+
+    final base = await getApplicationSupportDirectory();
+    final dir = Directory('${base.path}${Platform.pathSeparator}photos');
+    if (!await dir.exists()) await dir.create(recursive: true);
+
+    final dot = sourcePath.lastIndexOf('.');
+    final ext = dot == -1 ? '.jpg' : sourcePath.substring(dot).toLowerCase();
+    // The name carries a stamp so replacing a photo does not land on the old
+    // file while Flutter still has it in its image cache.
+    final name =
+        '$recipeId-${DateTime.now().millisecondsSinceEpoch}$ext';
+    final target = '${dir.path}${Platform.pathSeparator}$name';
+
+    final previous = r.photoPath;
+    await File(sourcePath).copy(target);
+
+    r.photoPath = target;
+    _touchLibrary();
+
+    // Drop the file it replaced, now that the new one is safely in place.
+    if (previous != null && previous != target && previous.startsWith(dir.path)) {
+      try {
+        await File(previous).delete();
+      } on FileSystemException {
+        // A photo that will not delete is not worth failing the change over.
+      }
+    }
   }
 
   void markCooked(String recipeId) {

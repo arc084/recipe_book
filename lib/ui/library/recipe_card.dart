@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../../theme/tokens.dart';
+import '../widgets/photo_picker.dart';
 import '../widgets/primitives.dart';
 
 /// A card in the Library grid.
@@ -63,8 +64,10 @@ class _RecipeCardState extends State<RecipeCard> {
                     setState(() => _dragOver = false);
                     final file = detail.files.firstOrNull;
                     if (file == null) return;
-                    if (!_looksLikeImage(file.path)) return;
-                    context.read<AppState>().setRecipePhoto(r.id, file.path);
+                    if (!looksLikeImage(file.path)) return;
+                    // Take a copy, so the card does not break when the folder
+                    // it was dragged from moves.
+                    context.read<AppState>().adoptRecipePhoto(r.id, file.path);
                   },
                   child: Stack(
                     fit: StackFit.expand,
@@ -164,15 +167,6 @@ class _RecipeCardState extends State<RecipeCard> {
     );
   }
 
-  static bool _looksLikeImage(String path) {
-    final p = path.toLowerCase();
-    return p.endsWith('.jpg') ||
-        p.endsWith('.jpeg') ||
-        p.endsWith('.png') ||
-        p.endsWith('.webp') ||
-        p.endsWith('.gif') ||
-        p.endsWith('.bmp');
-  }
 }
 
 class _Figure extends StatelessWidget {
