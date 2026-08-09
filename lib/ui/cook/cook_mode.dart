@@ -25,6 +25,13 @@ enum CookCommand {
 }
 
 abstract final class CookMode {
+  /// True while a cook session is on screen.
+  ///
+  /// A recipe shared into the app mid-cook must not throw the user out of the
+  /// kitchen, so the share intake waits on this.
+  static bool get isActive => _active;
+  static bool _active = false;
+
   /// Start cooking checks the pantry first. The missing item is named with
   /// where it is used, and Cook anyway is always offered — nothing here
   /// refuses to start.
@@ -43,14 +50,19 @@ abstract final class CookMode {
     }
 
     if (!context.mounted) return;
-    await Navigator.of(context, rootNavigator: true).push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (_, _, _) => CookModeScreen(recipeId: recipeId),
-        transitionsBuilder: (_, animation, _, child) =>
-            FadeTransition(opacity: animation, child: child),
-      ),
-    );
+    _active = true;
+    try {
+      await Navigator.of(context, rootNavigator: true).push(
+        PageRouteBuilder(
+          opaque: true,
+          pageBuilder: (_, _, _) => CookModeScreen(recipeId: recipeId),
+          transitionsBuilder: (_, animation, _, child) =>
+              FadeTransition(opacity: animation, child: child),
+        ),
+      );
+    } finally {
+      _active = false;
+    }
   }
 }
 

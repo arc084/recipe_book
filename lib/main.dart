@@ -6,7 +6,10 @@ import 'package:window_manager/window_manager.dart';
 
 import 'state/app_state.dart';
 import 'state/nav.dart';
+import 'state/share_intake.dart';
 import 'theme/app_theme.dart';
+import 'ui/cook/cook_mode.dart';
+import 'ui/import/import_flow.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/shell/mobile_shell.dart';
 
@@ -55,22 +58,71 @@ Future<void> main() async {
   runApp(RecipeBookApp(state: state));
 }
 
-class RecipeBookApp extends StatelessWidget {
+class RecipeBookApp extends StatefulWidget {
   const RecipeBookApp({super.key, required this.state});
 
   final AppState state;
 
   @override
+  State<RecipeBookApp> createState() => _RecipeBookAppState();
+}
+
+class _RecipeBookAppState extends State<RecipeBookApp>
+    with WidgetsBindingObserver {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  late final ShareIntake _share = ShareIntake(onUrl: _importShared);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _share.start();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // A link held back while cooking gets another chance on the way back in.
+    if (state == AppLifecycleState.resumed && _share.hasHeldLink) {
+      _share.flush();
+    }
+  }
+
+  /// Routes a shared address into step 1 of the import.
+  ///
+  /// Returns false when the app is mid-cook, which holds the link rather than
+  /// dropping it — being thrown out of the kitchen by a share would be worse
+  /// than waiting.
+  bool _importShared(String url) {
+    if (CookMode.isActive) return false;
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) return false;
+
+    // Let the frame settle before pushing over it on a cold start.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final context = _navigatorKey.currentContext;
+      if (context != null) ImportFlow.startWithUrl(context, url);
+    });
+    return true;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: state),
+        ChangeNotifierProvider.value(value: widget.state),
         ChangeNotifierProvider(create: (_) => NavController()),
       ],
       child: Consumer<AppState>(
         builder: (context, app, _) => MaterialApp(
           title: 'Recipe Book',
           debugShowCheckedModeBanner: false,
+          navigatorKey: _navigatorKey,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           // Theme is per device — Light, Dark or System default.

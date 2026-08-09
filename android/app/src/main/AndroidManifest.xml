@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Import from web is the only thing that reaches the network, and the
+         app is otherwise offline by design. Flutter's template declares this
+         in the debug and profile manifests only, for the Dart VM service, so
+         without it here a release build silently has no network at all. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="recipe_book"
+        android:label="Recipe Book"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -23,6 +29,14 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Sharing a recipe page from a browser is the usual way an
+                 import starts on the phone. Plain text only: the share
+                 carries the address, and the app fetches the page itself. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

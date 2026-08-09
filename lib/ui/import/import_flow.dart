@@ -1244,13 +1244,20 @@ class _StepFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
+    final narrow = isNarrow(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(30, 14, 30, 16),
       decoration: BoxDecoration(
         color: t.chrome,
         border: Border(top: BorderSide(color: t.divider)),
       ),
-      child: Row(
+      // The phone's gesture bar sits over this otherwise.
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: narrow
+              ? const EdgeInsets.fromLTRB(16, 12, 16, 12)
+              : const EdgeInsets.fromLTRB(30, 14, 30, 16),
+          child: Row(
         children: [
           Icon(
             highlight ? Icons.error_outline : Icons.info_outline,
@@ -1275,6 +1282,8 @@ class _StepFooter extends StatelessWidget {
             onPressed: onPrimary,
           ),
         ],
+          ),
+        ),
       ),
     );
   }

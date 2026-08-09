@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../data/models.dart';
 import '../../state/app_state.dart';
+import '../../state/share_intake.dart';
 import '../../theme/tokens.dart';
 import '../import/import_flow.dart';
 import '../widgets/photo_picker.dart';
@@ -166,13 +167,12 @@ class _MobileLibraryPageState extends State<MobileLibraryPage> {
   /// recipe address, then Import from a link, then hand entry. Components are
   /// added on the desktop.
   Future<void> _openAddSheet(BuildContext context) async {
-    final clip = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = clip?.text?.trim() ?? '';
-    final uri = Uri.tryParse(text);
-    final clipboardUrl =
-        (uri != null && (uri.scheme == 'http' || uri.scheme == 'https'))
-            ? text
-            : null;
+    // Android 12+ raises a system toast every time an app reads the
+    // clipboard, so pressing ＋ must not read it. `hasStrings` asks only
+    // whether there is text — it inspects the clip description, not the
+    // contents, and is silent. The address itself is read when the user taps
+    // the row, which is the one moment the toast makes sense.
+    final hasText = await Clipboard.hasStrings();
 
     if (!context.mounted) return;
 
@@ -182,15 +182,23 @@ class _MobileLibraryPageState extends State<MobileLibraryPage> {
       builder: (sheetContext) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (clipboardUrl != null)
+          if (hasText)
             SheetRow(
               icon: Icons.content_paste,
-              title: 'Import ${_hostOf(clipboardUrl)}',
-              detail: clipboardUrl,
+              title: 'Use the link on your clipboard',
+              detail: 'Read when you tap — you check the page before '
+                  'anything is saved',
               accent: true,
-              onTap: () {
+              onTap: () async {
+                final clip = await Clipboard.getData(Clipboard.kTextPlain);
+                final url = ShareIntake.extractUrl(clip?.text);
+                if (!sheetContext.mounted) return;
                 Navigator.of(sheetContext).pop();
-                ImportFlow.startWithUrl(context, clipboardUrl);
+                if (url == null) {
+                  phoneToast(context, 'No web address on the clipboard');
+                  return;
+                }
+                if (context.mounted) ImportFlow.startWithUrl(context, url);
               },
             ),
           SheetRow(
@@ -215,9 +223,6 @@ class _MobileLibraryPageState extends State<MobileLibraryPage> {
       ),
     );
   }
-
-  String _hostOf(String url) =>
-      Uri.tryParse(url)?.host.replaceFirst('www.', '') ?? 'this link';
 
   void _handEntry(BuildContext context) {
     final app = context.read<AppState>();
