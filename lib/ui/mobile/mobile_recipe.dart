@@ -355,6 +355,7 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
       Coverage.inPantry => (Icons.check, t.accent),
       Coverage.staple => (Icons.check, t.textFaint),
       Coverage.onList => (Icons.circle_outlined, t.accent),
+      Coverage.outOfStock => (Icons.remove_circle_outline, t.accent),
       Coverage.missing => (Icons.priority_high, t.accent),
     };
     final scaled = line.quantity == null ? null : line.quantity! * scale;
@@ -387,7 +388,8 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
                 ),
               ),
             ),
-            if (cov.coverage == Coverage.missing)
+            if (cov.coverage == Coverage.missing ||
+                cov.coverage == Coverage.outOfStock)
               AppButton(
                 'add',
                 kind: ButtonKind.ghost,

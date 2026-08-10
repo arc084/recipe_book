@@ -399,6 +399,8 @@ class _RecipePageState extends State<RecipePage> {
       Coverage.inPantry => (Icons.check, t.accent),
       Coverage.staple => (Icons.check, t.textFaint),
       Coverage.onList => (Icons.circle_outlined, t.accent),
+      // Listed, but run out — the user knows the item, just has none.
+      Coverage.outOfStock => (Icons.remove_circle_outline, t.accent),
       Coverage.missing => (Icons.priority_high, t.accent),
     };
 
@@ -410,9 +412,7 @@ class _RecipePageState extends State<RecipePage> {
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.divider)),
-        color: cov.coverage == Coverage.missing || cov.coverage == Coverage.onList
-            ? t.accent.withValues(alpha: 0.09)
-            : null,
+        color: cov.countsAsMissing ? t.accent.withValues(alpha: 0.09) : null,
       ),
       child: HoverRow(
         child: Padding(
@@ -434,9 +434,11 @@ class _RecipePageState extends State<RecipePage> {
                     ),
                   ),
                 ),
-                if (cov.coverage == Coverage.missing)
+                if (cov.needsBuying)
                   AppButton(
-                    'add',
+                    // Run out says so, so the row is not mistaken for
+                    // something the pantry has never heard of.
+                    cov.coverage == Coverage.outOfStock ? 'run out · add' : 'add',
                     kind: ButtonKind.ghost,
                     fontSize: 11,
                     height: 22,

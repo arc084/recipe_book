@@ -473,6 +473,7 @@ class PantryItem {
     this.group = PantryGroup.pantry,
     List<String>? aliases,
     this.isStaple = false,
+    this.inStock = true,
     this.brandLabel,
     this.servingAmount,
     this.servingUnit = 'g',
@@ -500,6 +501,14 @@ class PantryItem {
 
   /// Staples are assumed on hand and excluded from missing-ingredient counts.
   bool isStaple;
+
+  /// Whether the user actually has any right now.
+  ///
+  /// Being in the pantry and having some are two different things: running out
+  /// of parmesan should make every recipe using it say so, without throwing
+  /// away its macros, its other known names, or the fact that it belongs in
+  /// the fridge. An item out of stock stays listed and counts as missing.
+  bool inStock;
 
   /// The product this was read off, when the numbers came from a label.
   String? brandLabel;
@@ -548,6 +557,7 @@ class PantryItem {
         group: group,
         aliases: [...aliases],
         isStaple: isStaple,
+        inStock: inStock,
         brandLabel: brandLabel,
         servingAmount: servingAmount,
         servingUnit: servingUnit,
@@ -571,6 +581,9 @@ class PantryItem {
         group: PantryGroup.parse(j['group'] as String?),
         aliases: (j['aliases'] as List?)?.cast<String>() ?? <String>[],
         isStaple: j['isStaple'] as bool? ?? false,
+        // Libraries written before stock was tracked list only what was on
+        // hand, so an absent flag means in stock.
+        inStock: j['inStock'] as bool? ?? true,
         brandLabel: j['brandLabel'] as String?,
         servingAmount: (j['servingAmount'] as num?)?.toDouble(),
         servingUnit: j['servingUnit'] as String? ?? 'g',
@@ -596,6 +609,7 @@ class PantryItem {
         'group': group.name,
         'aliases': aliases,
         'isStaple': isStaple,
+        'inStock': inStock,
         'brandLabel': brandLabel,
         'servingAmount': servingAmount,
         'servingUnit': servingUnit,

@@ -8,6 +8,7 @@ import '../../state/nav.dart';
 import '../../theme/tokens.dart';
 import '../library/library_page.dart' show promptForText;
 import '../widgets/primitives.dart';
+import 'remove_item.dart';
 import 'edit_macros.dart';
 
 /// What the user has, grouped by where it is kept.
@@ -109,7 +110,8 @@ class _PantryPageState extends State<PantryPage> {
                   padding: const EdgeInsets.fromLTRB(2, 8, 2, 0),
                   child: Text(
                     'Click a chip to open it · drag to move it between '
-                    'groups. A ◦ means no macros yet.',
+                    'groups · right-click for stock and removal. A ◦ means no '
+                    'macros yet; struck through means run out.',
                     style: TextStyle(
                       fontFamily: t.bodyFamily,
                       fontSize: 10.5,
@@ -267,13 +269,26 @@ class _PantryPageState extends State<PantryPage> {
                     SectionLabel(group.label, color: t.textMuted, size: 10.5),
                     const SizedBox(width: 6),
                     Text(
-                      '${items.length}',
+                      // The count is what is on hand, with the run-out ones
+                      // called out rather than folded into the same number.
+                      items.where((i) => i.inStock).length.toString(),
                       style: TextStyle(
                         fontFamily: t.bodyFamily,
                         fontSize: 10.5,
                         color: t.textFaint,
                       ),
                     ),
+                    if (items.any((i) => !i.inStock)) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '· ${items.where((i) => !i.inStock).length} run out',
+                        style: TextStyle(
+                          fontFamily: t.bodyFamily,
+                          fontSize: 10.5,
+                          color: t.accent,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -296,11 +311,17 @@ class _PantryPageState extends State<PantryPage> {
 
     final chip = Tag(
       item.name,
-      style: item.brandLabel != null
-          ? TagStyle.accent
-          : selected
-              ? TagStyle.outline
-              : TagStyle.neutral,
+      // Run out reads as struck through and faded, so a glance down the
+      // groups says what is actually on hand without having to open anything.
+      struckThrough: !item.inStock,
+      faded: !item.inStock,
+      style: !item.inStock
+          ? TagStyle.outline
+          : item.brandLabel != null
+              ? TagStyle.accent
+              : selected
+                  ? TagStyle.outline
+                  : TagStyle.neutral,
       trailing: item.hasMacros
           ? (item.brandLabel != null
               ? Text(
@@ -331,8 +352,80 @@ class _PantryPageState extends State<PantryPage> {
         child: Opacity(opacity: 0.9, child: chip),
       ),
       childWhenDragging: Opacity(opacity: 0.3, child: chip),
-      child: chip,
+      // Right-click is the desktop way at both of these without leaving the
+      // group you are looking at.
+      child: GestureDetector(
+        onSecondaryTapDown: (d) =>
+            _chipMenu(context, item, d.globalPosition),
+        child: chip,
+      ),
     );
+  }
+
+  Future<void> _chipMenu(
+    BuildContext context,
+    PantryItem item,
+    Offset at,
+  ) async {
+    final t = context.tokens;
+    final app = context.read<AppState>();
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+
+    final choice = await showMenu<String>(
+      context: context,
+      color: t.surface,
+      shape: RoundedRectangleBorder(borderRadius: t.brContainer),
+      position: RelativeRect.fromRect(
+        at & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'stock',
+          child: Text(
+            item.inStock ? 'Mark as run out' : 'Mark as in stock',
+            style: TextStyle(
+              fontFamily: t.bodyFamily,
+              fontSize: 13,
+              color: t.text,
+            ),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'groceries',
+          child: Text(
+            'Add to groceries',
+            style: TextStyle(
+              fontFamily: t.bodyFamily,
+              fontSize: 13,
+              color: t.text,
+            ),
+          ),
+        ),
+        PopupMenuItem(
+          value: 'remove',
+          child: Text(
+            'Remove from pantry…',
+            style: TextStyle(
+              fontFamily: t.bodyFamily,
+              fontSize: 13,
+              color: t.accentText,
+            ),
+          ),
+        ),
+      ],
+    );
+    if (choice == null || !context.mounted) return;
+
+    switch (choice) {
+      case 'stock':
+        app.setInStock(item.id, !item.inStock);
+      case 'groceries':
+        app.addGrocery(item.name, source: 'Pantry', pantryItemId: item.id);
+      case 'remove':
+        await confirmRemovePantryItem(context, item);
+    }
   }
 
   String _brandShort(String brand) {
@@ -398,9 +491,26 @@ class _PantryPageState extends State<PantryPage> {
                           ),
                         ),
                         const SizedBox(height: 5),
-                        Text(
-                          item.name,
-                          style: Theme.of(context).textTheme.headlineSmall,
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                item.name,
+                                style:
+                                    Theme.of(context).textTheme.headlineSmall,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            // Sage carries "in stock" on Organic; Nocturne is
+                            // a mono palette and resolves accent2 to the
+                            // accent, so the same token works in both.
+                            Tag(
+                              item.inStock ? 'In stock' : 'Run out',
+                              style: item.inStock
+                                  ? TagStyle.accent2
+                                  : TagStyle.outline,
+                            ),
+                          ],
                         ),
                         if (item.brandLabel != null) ...[
                           const SizedBox(height: 6),
@@ -422,6 +532,19 @@ class _PantryPageState extends State<PantryPage> {
                     ),
                   ),
                   const SizedBox(width: 14),
+                  // Whether it is on hand is the thing that changes most
+                  // often, so it is a single click here and reversible.
+                  AppButton(
+                    item.inStock ? 'Mark as run out' : 'Back in stock',
+                    onPressed: () => app.setInStock(item.id, !item.inStock),
+                  ),
+                  const SizedBox(width: 8),
+                  AppIconButton(
+                    icon: Icons.delete_outline,
+                    tooltip: 'Remove from pantry',
+                    onPressed: () => confirmRemovePantryItem(context, item),
+                  ),
+                  const SizedBox(width: 8),
                   // Add to groceries is on the item, not just the list.
                   AppButton(
                     'Add to groceries',

@@ -259,6 +259,18 @@ class AppState extends ChangeNotifier {
     _touchPantry();
   }
 
+  /// Marks an item as on hand or run out.
+  ///
+  /// Nothing is thrown away — the macros, the other known names and the group
+  /// all stay — so this is reversible and safe to hit by accident, unlike
+  /// removing the item.
+  void setInStock(String id, bool inStock) {
+    final item = pantryItem(id);
+    if (item == null || item.inStock == inStock) return;
+    item.inStock = inStock;
+    _touchPantry();
+  }
+
   void savePantryItem(PantryItem edited) {
     final i = pantry.items.indexWhere((p) => p.id == edited.id);
     if (i == -1) {
@@ -453,8 +465,12 @@ class AppState extends ChangeNotifier {
           .firstOrNull;
       if (known == null) {
         addPantryItem(g.name);
+      } else {
+        // Buying it again is what puts a run-out item back in stock.
+        known.inStock = true;
       }
     }
+    _touchPantry();
     library.groceries.removeWhere((g) => g.checked);
     _touchLibrary();
     return checked.length;

@@ -20,6 +20,8 @@ class Tag extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.dense = false,
+    this.struckThrough = false,
+    this.faded = false,
   });
 
   final String label;
@@ -27,6 +29,10 @@ class Tag extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool dense;
+
+  /// For a pantry item that has been run out of — listed, but not on hand.
+  final bool struckThrough;
+  final bool faded;
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +68,14 @@ class Tag extends StatelessWidget {
         children: [
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(color: fg, letterSpacing: 0.02 * 11, height: 1.35),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: faded ? fg.withValues(alpha: 0.55) : fg,
+                  letterSpacing: 0.02 * 11,
+                  height: 1.35,
+                  decoration:
+                      struckThrough ? TextDecoration.lineThrough : null,
+                  decorationColor: fg.withValues(alpha: 0.7),
+                ),
           ),
           if (trailing != null) ...[const SizedBox(width: 5), trailing!],
         ],
@@ -615,13 +625,19 @@ class RecipePhoto extends StatelessWidget {
       return (extent * ratio).round();
     }
 
+    // Only ever one axis. Given both, the decoder scales to exactly those
+    // dimensions and the photograph comes out squashed; given one, it keeps
+    // the aspect ratio and scales the other to match. The longer edge of the
+    // slot is the one that has to be covered, so that is the one to ask for.
+    final wide = constraints.maxWidth >= constraints.maxHeight;
+
     return Image.file(
       File(path!),
       fit: fit,
       width: double.infinity,
       height: double.infinity,
-      cacheWidth: cap(constraints.maxWidth),
-      cacheHeight: cap(constraints.maxHeight),
+      cacheWidth: wide ? cap(constraints.maxWidth) : null,
+      cacheHeight: wide ? null : cap(constraints.maxHeight),
       // Downscaling by this much needs better than nearest-neighbour.
       filterQuality: FilterQuality.medium,
       errorBuilder: (_, _, _) =>

@@ -265,6 +265,10 @@ enum Coverage {
   /// The user has it.
   inPantry,
 
+  /// A pantry item, but marked as run out. It keeps its macros and its other
+  /// names; it just needs buying, so it counts as missing.
+  outOfStock,
+
   /// Assumed on hand — salt, pepper, oil, sugar, flour — and excluded from
   /// missing counts.
   staple,
@@ -293,11 +297,14 @@ class CoverageResult {
   /// has to be bought — so it counts against the "8 of 9 in pantry" figure and
   /// against the missing badge, even though its row reads "on your list".
   bool get countsAsMissing =>
-      coverage == Coverage.missing || coverage == Coverage.onList;
+      coverage == Coverage.missing ||
+      coverage == Coverage.onList ||
+      coverage == Coverage.outOfStock;
 
   /// Narrower: things that are not on the list yet either, and so are what
   /// "add the missing items to groceries" should actually add.
-  bool get needsBuying => coverage == Coverage.missing;
+  bool get needsBuying =>
+      coverage == Coverage.missing || coverage == Coverage.outOfStock;
 }
 
 /// Works out what the user has for a recipe.
@@ -329,6 +336,17 @@ class PantryCoverage {
         _pantry.where((p) => p.matchesName(line.name)).firstOrNull;
 
     if (matched != null) {
+      // Stock is checked before the staple assumption on purpose. Assuming
+      // staples on hand is about not nagging over salt the user has never
+      // thought to track; marking one run out is them saying they have none,
+      // and stated beats assumed.
+      if (!matched.inStock) {
+        return CoverageResult(
+          ingredient: line,
+          coverage: Coverage.outOfStock,
+          pantryItem: matched,
+        );
+      }
       if (matched.isStaple && assumeStaples) {
         return CoverageResult(
           ingredient: line,

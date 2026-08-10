@@ -5,6 +5,7 @@ import '../../data/models.dart';
 import '../../state/app_state.dart';
 import '../../theme/tokens.dart';
 import '../pantry/edit_macros.dart';
+import '../pantry/remove_item.dart';
 import '../widgets/primitives.dart';
 import 'mobile_widgets.dart';
 
@@ -190,11 +191,22 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
 
   Widget _chip(BuildContext context, PantryItem item) {
     final t = context.tokens;
+    final fg = !item.inStock
+        ? t.accent
+        : item.brandLabel != null
+            ? t.tagAccentFg
+            : t.tagNeutralFg;
+
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
       decoration: BoxDecoration(
-        color: item.brandLabel != null ? t.tagAccentBg : t.tagNeutralBg,
+        color: item.inStock
+            ? (item.brandLabel != null ? t.tagAccentBg : t.tagNeutralBg)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(999),
+        border: item.inStock
+            ? null
+            : Border.fromBorderSide(BorderSide(color: t.accent)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -204,7 +216,11 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
             style: TextStyle(
               fontFamily: t.bodyFamily,
               fontSize: 13,
-              color: item.brandLabel != null ? t.tagAccentFg : t.tagNeutralFg,
+              // Run out reads as struck through here too.
+              color: item.inStock ? fg : fg.withValues(alpha: 0.6),
+              decoration:
+                  item.inStock ? null : TextDecoration.lineThrough,
+              decorationColor: fg,
             ),
           ),
           if (!item.hasMacros) ...[
@@ -240,6 +256,48 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
   }
 }
 
+/// The phone's equivalent of the desktop's right-click menu, reached from the
+/// item screen since a long press is already the drag gesture here.
+Future<void> showPantryItemMenu(BuildContext context, PantryItem item) async {
+  final app = context.read<AppState>();
+  {
+    await showPhoneSheet<void>(
+      context,
+      title: item.name,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SheetRow(
+            icon: item.inStock
+                ? Icons.remove_circle_outline
+                : Icons.check_circle_outline,
+            title: item.inStock ? 'Mark as run out' : 'Back in stock',
+            detail: item.inStock
+                ? 'Keeps its macros and names; recipes count it as missing'
+                : 'Recipes stop flagging it',
+            onTap: () {
+              app.setInStock(item.id, !item.inStock);
+              Navigator.of(sheetContext).pop();
+            },
+          ),
+          SheetRow(
+            icon: Icons.delete_outline,
+            title: 'Remove from pantry…',
+            detail: 'Deletes its macros and other known names',
+            accent: true,
+            onTap: () async {
+              Navigator.of(sheetContext).pop();
+              final removed = await confirmRemovePantryItem(context, item);
+              // The item screen has nothing left to show.
+              if (removed && context.mounted) Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// One pantry item on the phone.
 class MobilePantryItemPage extends StatelessWidget {
   const MobilePantryItemPage({super.key, required this.itemId});
@@ -259,11 +317,40 @@ class MobilePantryItemPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            MobileTopBar(title: item.name),
+            MobileTopBar(
+              title: item.name,
+              actions: [
+                IconButton(
+                  icon: Icon(Icons.more_horiz, size: 21, color: t.textSecondary),
+                  onPressed: () => showPantryItemMenu(context, item),
+                ),
+              ],
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Tag(
+                          item.inStock ? 'In stock' : 'Run out',
+                          style: item.inStock
+                              ? TagStyle.accent2
+                              : TagStyle.outline,
+                        ),
+                        const Spacer(),
+                        AppButton(
+                          item.inStock ? 'Mark as run out' : 'Back in stock',
+                          fontSize: 12.5,
+                          height: 34,
+                          onPressed: () =>
+                              app.setInStock(item.id, !item.inStock),
+                        ),
+                      ],
+                    ),
+                  ),
                   if (item.brandLabel != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
