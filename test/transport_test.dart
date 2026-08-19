@@ -32,6 +32,7 @@ class _FakeHost implements SyncHost {
 
   final List<LibraryDatabase> received = [];
   final List<ConflictPolicy> policies = [];
+  final List<String> from = [];
   final Map<String, List<int>> photos = {};
 
   @override
@@ -42,9 +43,11 @@ class _FakeHost implements SyncHost {
     LibraryDatabase l,
     PantryDatabase p,
     ConflictPolicy policy,
+    String fromDeviceId,
   ) async {
     received.add(l);
     policies.add(policy);
+    from.add(fromDeviceId);
   }
 
   @override
@@ -315,6 +318,20 @@ void main() {
         policy: ConflictPolicy.ask,
       );
       expect(host.policies.single, ConflictPolicy.ask);
+    });
+
+    test('the host learns which device it just exchanged with', () async {
+      // Without this the device that was synced *to* records nothing, reads
+      // "never exchanged" forever, and never advances its watermarks.
+      final peer = await pair();
+      await client.exchange(
+        base,
+        peer: peer,
+        library: LibraryDatabase(),
+        pantry: PantryDatabase(),
+        policy: ConflictPolicy.newestWins,
+      );
+      expect(host.from.single, 'joining-device');
     });
 
     test('stamps survive the round trip', () async {

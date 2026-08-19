@@ -24,11 +24,13 @@ abstract class SyncHost {
   /// Called when a peer pushes its state.
   ///
   /// [policy] is the *initiator's*, not ours — see the note on the wire
-  /// format in `SyncClient.exchange`.
+  /// format in `SyncClient.exchange`. [fromDeviceId] is whoever signed the
+  /// request, so the exchange can be recorded against them.
   Future<void> onIncoming(
     LibraryDatabase library,
     PantryDatabase pantry,
     ConflictPolicy policy,
+    String fromDeviceId,
   );
 
   /// Bytes of a stored photo, by content hash. Null when we do not have it.
@@ -233,6 +235,7 @@ class SyncServer {
       LibraryDatabase.fromJson(json['library'] as Map<String, dynamic>),
       PantryDatabase.fromJson(json['pantry'] as Map<String, dynamic>),
       ConflictPolicy.parse(json['policy'] as String?),
+      request.headers.value(SyncHeaders.device) ?? '',
     );
 
     await _json(request, {

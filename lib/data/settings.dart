@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 /// How a sync conflict is resolved. The default is to ask — it is the user's
@@ -154,16 +156,23 @@ class PermissionState {
 
 /// Per-device settings. Theme is deliberately one of them, so the kitchen
 /// laptop and the phone can differ.
+/// What this device calls itself before the user renames it.
+///
+/// It shows up in the *other* device's paired list, so "This PC" on a phone is
+/// actively confusing.
+String get defaultDeviceName => Platform.isAndroid ? 'This phone' : 'This PC';
+
 class AppSettings {
   AppSettings({
     this.deviceId,
     this.themeMode = ThemeMode.dark,
-    this.deviceName = 'This PC',
+    String? deviceName,
     this.conflictPolicy = ConflictPolicy.ask,
     List<PairedDevice>? devices,
     List<PermissionState>? permissions,
     this.lastSync,
-  }) : devices = devices ?? <PairedDevice>[],
+  }) : deviceName = deviceName ?? defaultDeviceName,
+       devices = devices ?? <PairedDevice>[],
        permissions =
            permissions ??
            [
@@ -178,6 +187,9 @@ class AppSettings {
   String? deviceId;
 
   ThemeMode themeMode;
+
+  /// What the other device calls this one in its paired list. Defaults to
+  /// something true of the platform rather than "This PC" on a phone.
   String deviceName;
   ConflictPolicy conflictPolicy;
   final List<PairedDevice> devices;
@@ -189,7 +201,7 @@ class AppSettings {
       (m) => m.name == j['themeMode'],
       orElse: () => ThemeMode.dark,
     ),
-    deviceName: j['deviceName'] as String? ?? 'This PC',
+    deviceName: j['deviceName'] as String?,
     conflictPolicy: ConflictPolicy.parse(j['conflictPolicy'] as String?),
     devices: [
       for (final d in (j['devices'] as List? ?? []))

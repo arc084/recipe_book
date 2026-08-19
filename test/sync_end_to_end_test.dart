@@ -177,16 +177,26 @@ void main() {
     expect(b.library.recipes, hasLength(countB));
   });
 
-  test('the session is recorded against the device', () async {
-    final peer = await pair();
-    await joinSide.syncWith(peer, base);
+  test(
+    'the session is recorded on both devices, not just the starter',
+    () async {
+      final peer = await pair();
+      await joinSide.syncWith(peer, base);
 
-    final recorded = b.settings.devices.single;
-    expect(recorded.lastSync, isNotNull);
-    expect(recorded.recipeCount, a.library.recipes.length);
-    expect(recorded.libraryWatermark, isNotNull);
-    expect(b.settings.lastSync, isNotNull);
-  });
+      final onPhone = b.settings.devices.single;
+      expect(onPhone.lastSync, isNotNull);
+      expect(onPhone.recipeCount, a.library.recipes.length);
+      expect(onPhone.libraryWatermark, isNotNull);
+      expect(b.settings.lastSync, isNotNull);
+
+      // The device that was synced *to* took part just as much. Without this it
+      // reads "never exchanged" however often it has been, and its watermarks
+      // never advance, so it keeps re-asking about settled conflicts.
+      final onLaptop = a.settings.devices.single;
+      expect(onLaptop.lastSync, isNotNull);
+      expect(onLaptop.libraryWatermark, isNotNull);
+    },
+  );
 
   test('a photograph follows its recipe by hash', () async {
     final peer = await pair();

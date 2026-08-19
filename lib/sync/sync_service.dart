@@ -88,9 +88,24 @@ class SyncService extends ChangeNotifier implements SyncHost {
     LibraryDatabase l,
     PantryDatabase p,
     ConflictPolicy policy,
+    String fromDeviceId,
   ) async {
+    _incomingFrom = fromDeviceId;
     await _mergeIn(l, p, policy: policy);
+    // Both sides took part, so both sides record it. Without this the device
+    // that was synced *to* reads "never exchanged" no matter how many times it
+    // has been, and its watermarks never advance — so it would keep re-asking
+    // about conflicts it has already settled.
+    if (pendingConflicts.isEmpty) {
+      for (final peer in _app.settings.devices) {
+        if (peer.id == _incomingFrom) _app.recordSync(peer, l, p);
+      }
+    }
   }
+
+  /// Which device the request being handled came from, so the exchange can be
+  /// recorded against it.
+  String? _incomingFrom;
 
   @override
   Future<List<int>?> photoBytes(String hash) => _app.photoBytesByHash(hash);
