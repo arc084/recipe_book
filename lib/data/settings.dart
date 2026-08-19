@@ -26,6 +26,10 @@ class PairedDevice {
     required this.recipeCount,
     required this.pantryCount,
     this.lastSync,
+    this.psk,
+    this.lastAddress,
+    this.libraryWatermark,
+    this.pantryWatermark,
   });
 
   final String id;
@@ -43,6 +47,18 @@ class PairedDevice {
   DateTime? libraryWatermark;
   DateTime? pantryWatermark;
 
+  /// The shared secret both devices derived when they paired.
+  ///
+  /// Every later request is signed with it, so the six-digit code is needed
+  /// once and never travels again. Null means the pairing never completed.
+  String? psk;
+
+  /// Where this device answered last time — a hint that saves a discovery
+  /// round, never a substitute for one. Addresses change.
+  String? lastAddress;
+
+  bool get isPaired => psk != null;
+
   factory PairedDevice.fromJson(Map<String, dynamic> j) => PairedDevice(
     id: j['id'] as String,
     name: j['name'] as String,
@@ -52,6 +68,10 @@ class PairedDevice {
     lastSync: j['lastSync'] == null
         ? null
         : DateTime.parse(j['lastSync'] as String),
+    psk: j['psk'] as String?,
+    lastAddress: j['lastAddress'] as String?,
+    libraryWatermark: DateTime.tryParse(j['libraryWatermark'] as String? ?? ''),
+    pantryWatermark: DateTime.tryParse(j['pantryWatermark'] as String? ?? ''),
   );
 
   Map<String, dynamic> toJson() => {
@@ -61,6 +81,10 @@ class PairedDevice {
     'recipeCount': recipeCount,
     'pantryCount': pantryCount,
     'lastSync': lastSync?.toIso8601String(),
+    'psk': psk,
+    'lastAddress': lastAddress,
+    'libraryWatermark': libraryWatermark?.toIso8601String(),
+    'pantryWatermark': pantryWatermark?.toIso8601String(),
   };
 }
 
