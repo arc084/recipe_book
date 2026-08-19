@@ -11,14 +11,23 @@ DateTime t(int ms) => DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
 Stamp s(int ms, String by) => Stamp(t(ms), by);
 
 /// A pantry item, the simplest record with a name.
-StampedRecord item(String id, {required int at, String by = 'A', String? name}) =>
-    StampedRecord(
-      kind: EntityKind.pantryItem,
-      id: id,
-      json: {'id': id, 'name': name ?? id, 'group': 'pantry', 'aliases': <String>[]},
-      stamp: s(at, by),
-      label: name ?? id,
-    );
+StampedRecord item(
+  String id, {
+  required int at,
+  String by = 'A',
+  String? name,
+}) => StampedRecord(
+  kind: EntityKind.pantryItem,
+  id: id,
+  json: {
+    'id': id,
+    'name': name ?? id,
+    'group': 'pantry',
+    'aliases': <String>[],
+  },
+  stamp: s(at, by),
+  label: name ?? id,
+);
 
 StampedRecord recipe(
   String id, {
@@ -26,48 +35,50 @@ StampedRecord recipe(
   String by = 'A',
   String title = 'Katsu',
   List<Map<String, dynamic>>? ingredients,
-}) =>
-    StampedRecord(
-      kind: EntityKind.recipe,
-      id: id,
-      json: {
-        'id': id,
-        'title': title,
-        'mealTypeId': 'm',
-        'components': [
-          {'id': 'c1', 'recipeId': id, 'name': 'Main', 'order': 0},
+}) => StampedRecord(
+  kind: EntityKind.recipe,
+  id: id,
+  json: {
+    'id': id,
+    'title': title,
+    'mealTypeId': 'm',
+    'components': [
+      {'id': 'c1', 'recipeId': id, 'name': 'Main', 'order': 0},
+    ],
+    'ingredients':
+        ingredients ??
+        [
+          {'id': 'i1', 'componentId': 'c1', 'name': 'chicken', 'order': 0},
         ],
-        'ingredients': ingredients ??
-            [
-              {'id': 'i1', 'componentId': 'c1', 'name': 'chicken', 'order': 0},
-            ],
-        'steps': <Map<String, dynamic>>[],
-      },
-      stamp: s(at, by),
-      label: title,
-    );
+    'steps': <Map<String, dynamic>>[],
+  },
+  stamp: s(at, by),
+  label: title,
+);
 
 DbSnapshot snap({
   List<StampedRecord> records = const [],
   List<Tombstone> graves = const [],
   Map<String, Register> registers = const {},
-}) =>
-    DbSnapshot(
-      entities: {for (final r in records) r.id: r},
-      tombstones: {for (final g in graves) g.id: g},
-      registers: registers,
-    );
+}) => DbSnapshot(
+  entities: {for (final r in records) r.id: r},
+  tombstones: {for (final g in graves) g.id: g},
+  registers: registers,
+);
 
-Tombstone grave(String id, int at, {String by = 'A', EntityKind kind = EntityKind.pantryItem}) =>
-    Tombstone(kind: kind, id: id, stamp: s(at, by));
+Tombstone grave(
+  String id,
+  int at, {
+  String by = 'A',
+  EntityKind kind = EntityKind.pantryItem,
+}) => Tombstone(kind: kind, id: id, stamp: s(at, by));
 
 MergePlan run(
   DbSnapshot a,
   DbSnapshot b, {
   ConflictPolicy policy = ConflictPolicy.newestWins,
   Map<String, Resolution> answers = const {},
-}) =>
-    mergeDatabase(a, b, policy: policy, answers: answers);
+}) => mergeDatabase(a, b, policy: policy, answers: answers);
 
 void main() {
   group('the decision table', () {
@@ -105,7 +116,9 @@ void main() {
     test('different content is a conflict', () {
       final plan = run(
         snap(records: [item('x', at: 1, name: 'parmesan')]),
-        snap(records: [item('x', at: 5, by: 'B', name: 'parmigiano')]),
+        snap(
+          records: [item('x', at: 5, by: 'B', name: 'parmigiano')],
+        ),
         policy: ConflictPolicy.ask,
       );
       expect(plan.unresolved.single.reason, ConflictReason.editEdit);
@@ -135,14 +148,23 @@ void main() {
 
     test('two deletes agree on the earlier stamp', () {
       // Both sides must land on the same answer, whichever asks.
-      final ab = run(snap(graves: [grave('x', 5)]), snap(graves: [grave('x', 9, by: 'B')]));
-      final ba = run(snap(graves: [grave('x', 9, by: 'B')]), snap(graves: [grave('x', 5)]));
+      final ab = run(
+        snap(graves: [grave('x', 5)]),
+        snap(graves: [grave('x', 9, by: 'B')]),
+      );
+      final ba = run(
+        snap(graves: [grave('x', 9, by: 'B')]),
+        snap(graves: [grave('x', 5)]),
+      );
       expect(ab.result.tombstones['x']!.stamp, s(5, 'A'));
       expect(ba.result.tombstones['x']!.stamp, s(5, 'A'));
     });
 
     test('tombstones union unconditionally', () {
-      final plan = run(snap(graves: [grave('a', 1)]), snap(graves: [grave('b', 2)]));
+      final plan = run(
+        snap(graves: [grave('a', 1)]),
+        snap(graves: [grave('b', 2)]),
+      );
       expect(plan.result.tombstones.keys.toSet(), {'a', 'b'});
     });
   });
@@ -296,18 +318,21 @@ void main() {
     }
 
     for (final policy in [ConflictPolicy.newestWins, ConflictPolicy.keepBoth]) {
-      test('merging twice changes nothing the second time (${policy.name})', () {
-        for (var seed = 0; seed < 40; seed++) {
-          final d = drift(seed);
-          final once = run(d.a, d.b, policy: policy).result;
-          final twice = run(once, d.b, policy: policy).result;
-          expect(
-            fingerprint(twice),
-            fingerprint(once),
-            reason: 'seed $seed under ${policy.name}',
-          );
-        }
-      });
+      test(
+        'merging twice changes nothing the second time (${policy.name})',
+        () {
+          for (var seed = 0; seed < 40; seed++) {
+            final d = drift(seed);
+            final once = run(d.a, d.b, policy: policy).result;
+            final twice = run(once, d.b, policy: policy).result;
+            expect(
+              fingerprint(twice),
+              fingerprint(once),
+              reason: 'seed $seed under ${policy.name}',
+            );
+          }
+        },
+      );
 
       test('A→B and B→A converge (${policy.name})', () {
         for (var seed = 0; seed < 40; seed++) {
@@ -330,29 +355,35 @@ void main() {
         }
       });
 
-      test('no id is ever lost without a tombstone explaining it (${policy.name})',
-          () {
-        for (var seed = 0; seed < 40; seed++) {
-          final d = drift(seed);
-          final out = run(d.a, d.b, policy: policy).result;
-          final seen = {...d.a.entities.keys, ...d.b.entities.keys};
-          for (final id in seen) {
-            expect(
-              out.entities.containsKey(id) || out.tombstones.containsKey(id),
-              isTrue,
-              reason: 'seed $seed lost $id under ${policy.name}',
-            );
+      test(
+        'no id is ever lost without a tombstone explaining it (${policy.name})',
+        () {
+          for (var seed = 0; seed < 40; seed++) {
+            final d = drift(seed);
+            final out = run(d.a, d.b, policy: policy).result;
+            final seen = {...d.a.entities.keys, ...d.b.entities.keys};
+            for (final id in seen) {
+              expect(
+                out.entities.containsKey(id) || out.tombstones.containsKey(id),
+                isTrue,
+                reason: 'seed $seed lost $id under ${policy.name}',
+              );
+            }
           }
-        }
-      });
+        },
+      );
     }
 
     test('keep-both does not breed copies of copies', () {
       // The mint is a pure function of the conflict, so the second merge
       // recomputes the same id, finds it already present, and does nothing.
       // A clock-read or random id here would double the library every sync.
-      final a = snap(records: [item('x', at: 1, by: 'A', name: 'mine')]);
-      final b = snap(records: [item('x', at: 9, by: 'B', name: 'theirs')]);
+      final a = snap(
+        records: [item('x', at: 1, by: 'A', name: 'mine')],
+      );
+      final b = snap(
+        records: [item('x', at: 9, by: 'B', name: 'theirs')],
+      );
 
       final once = run(a, b, policy: ConflictPolicy.keepBoth).result;
       expect(once.entities, hasLength(2));

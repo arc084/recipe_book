@@ -7,7 +7,11 @@ import 'package:path_provider/path_provider.dart';
 
 import '../data/database.dart';
 import '../data/migrations.dart';
+import '../domain/sync/merge.dart';
+import '../domain/sync/repair.dart';
+import '../domain/sync/snapshot.dart';
 import '../domain/sync/stamp.dart';
+import '../domain/sync/tombstone.dart';
 import '../data/models.dart';
 import '../data/seed.dart';
 import '../data/settings.dart';
@@ -20,15 +24,21 @@ import '../domain/units.dart';
 /// Every mutation goes through here and is followed by a debounced save, so
 /// nothing on screen can drift from what is on disk.
 class AppState extends ChangeNotifier {
-  AppState();
+  /// [directory] is for tests: it puts the three files somewhere temporary, so
+  /// two AppStates can be run side by side in one process and reconciled.
+  AppState({Directory? directory})
+    : _library = libraryStore(directory: directory),
+      _pantry = pantryStore(directory: directory),
+      _settingsStore = JsonStore<AppSettings>(
+        fileName: 'settings.json',
+        decode: AppSettings.fromJson,
+        encode: (s) => s.toJson(),
+        directory: directory,
+      );
 
-  final _library = libraryStore();
-  final _pantry = pantryStore();
-  final _settingsStore = JsonStore<AppSettings>(
-    fileName: 'settings.json',
-    decode: AppSettings.fromJson,
-    encode: (s) => s.toJson(),
-  );
+  final JsonStore<LibraryDatabase> _library;
+  final JsonStore<PantryDatabase> _pantry;
+  final JsonStore<AppSettings> _settingsStore;
 
   LibraryDatabase library = LibraryDatabase();
   PantryDatabase pantry = PantryDatabase();
@@ -111,15 +121,45 @@ class AppState extends ChangeNotifier {
   /// Issues this device's stamps. Every mutation goes through it.
   DeviceClock _clock = DeviceClock(deviceId: '');
 
+  void _stampAll(Object? changed, Iterable<Stamped>? alsoChanged) {
+    if (changed is Stamped) changed.stamp = _clock.next();
+    if (changed is Iterable<Stamped>) {
+      for (final e in changed) {
+        e.stamp = _clock.next();
+      }
+    }
+    for (final e in alsoChanged ?? const <Stamped>[]) {
+      e.stamp = _clock.next();
+    }
+  }
+
+  /// Records a deletion so it can travel.
+  ///
+  /// A record simply missing on one side is indistinguishable from one the
+  /// other side has not seen yet, so without this every delete would be undone
+  /// by the next exchange.
+  void _bury(EntityKind kind, String id) {
+    final grave = Tombstone(kind: kind, id: id, stamp: _clock.next());
+    (kind.isPantry ? pantry.tombstones : library.tombstones).add(grave);
+  }
+
   // ── Saving ──────────────────────────────────────────────────────────────
 
-  void _touchLibrary() {
+  /// Stamps what changed and schedules the library save.
+  ///
+  /// Naming the changed record is the whole point: a stamp is what lets the
+  /// other device tell this edit from its own copy. A mutation that forgets to
+  /// name its record still saves, but it will silently lose every conflict.
+  void _touchLibrary([Object? changed, Iterable<Stamped>? alsoChanged]) {
+    _stampAll(changed, alsoChanged);
     notifyListeners();
     _saveLibrary?.cancel();
     _saveLibrary = Timer(const Duration(milliseconds: 350), _flushLibrary);
   }
 
-  void _touchPantry() {
+  /// Stamps what changed and schedules the pantry save. See [_touchLibrary].
+  void _touchPantry([Object? changed, Iterable<Stamped>? alsoChanged]) {
+    _stampAll(changed, alsoChanged);
     notifyListeners();
     _savePantry?.cancel();
     _savePantry = Timer(const Duration(milliseconds: 350), _flushPantry);
@@ -165,11 +205,9 @@ class AppState extends ChangeNotifier {
   /// it matches the list exactly.
   int get openGroceryCount => library.groceries.where((g) => !g.checked).length;
 
-  List<MealType> get mealTypes =>
-      [...library.mealTypes]..sort((a, b) => a.order.compareTo(b.order));
+  List<MealType> get mealTypes => [...library.mealTypes]..sort(byOrderThenId);
 
-  List<Aisle> get aisles =>
-      [...library.aisles]..sort((a, b) => a.order.compareTo(b.order));
+  List<Aisle> get aisles => [...library.aisles]..sort(byOrderThenId);
 
   MealType? mealType(String id) =>
       library.mealTypes.where((m) => m.id == id).firstOrNull;
@@ -208,18 +246,25 @@ class AppState extends ChangeNotifier {
     } else {
       library.recipes[i] = edited;
     }
-    _touchLibrary();
+    _touchLibrary(edited);
   }
 
   void deleteRecipe(String id) {
+    // The plan entries go with it, and each leaves its own record — otherwise
+    // a device that still has the recipe would put them straight back.
+    for (final entry in library.plan.where((p) => p.recipeId == id).toList()) {
+      _bury(EntityKind.planEntry, entry.id);
+    }
     library.recipes.removeWhere((r) => r.id == id);
     library.plan.removeWhere((p) => p.recipeId == id);
+    _bury(EntityKind.recipe, id);
     _touchLibrary();
   }
 
   void setRecipePhoto(String recipeId, String path) {
-    recipe(recipeId)?.photoPath = path;
-    _touchLibrary();
+    final r = recipe(recipeId);
+    r?.photoPath = path;
+    _touchLibrary(r);
   }
 
   /// Takes a copy of [sourcePath] into the app's own storage and points the
@@ -248,7 +293,7 @@ class AppState extends ChangeNotifier {
     await File(sourcePath).copy(target);
 
     r.photoPath = target;
-    _touchLibrary();
+    _touchLibrary(r);
 
     // Drop the file it replaced, now that the new one is safely in place.
     if (previous != null &&
@@ -266,7 +311,7 @@ class AppState extends ChangeNotifier {
     final r = recipe(recipeId);
     if (r == null) return;
     r.timesCooked += 1;
-    _touchLibrary();
+    _touchLibrary(r);
   }
 
   MealType addMealType(String name) {
@@ -276,7 +321,7 @@ class AppState extends ChangeNotifier {
       order: library.mealTypes.length,
     );
     library.mealTypes.add(t);
-    _touchLibrary();
+    _touchLibrary(t);
     return t;
   }
 
@@ -284,7 +329,7 @@ class AppState extends ChangeNotifier {
     final r = recipe(recipeId);
     if (r == null || r.tags.contains(tag)) return;
     r.tags.add(tag);
-    _touchLibrary();
+    _touchLibrary(r);
   }
 
   // ── Pantry ──────────────────────────────────────────────────────────────
@@ -297,7 +342,7 @@ class AppState extends ChangeNotifier {
       group: group ?? PantryGroup.pantry,
     );
     pantry.items.add(item);
-    _touchPantry();
+    _touchPantry(item);
     return item;
   }
 
@@ -305,7 +350,7 @@ class AppState extends ChangeNotifier {
     final item = pantryItem(id);
     if (item == null || item.group == group) return;
     item.group = group;
-    _touchPantry();
+    _touchPantry(item);
   }
 
   /// Marks an item as on hand or run out.
@@ -317,7 +362,7 @@ class AppState extends ChangeNotifier {
     final item = pantryItem(id);
     if (item == null || item.inStock == inStock) return;
     item.inStock = inStock;
-    _touchPantry();
+    _touchPantry(item);
   }
 
   void savePantryItem(PantryItem edited) {
@@ -327,7 +372,7 @@ class AppState extends ChangeNotifier {
     } else {
       pantry.items[i] = edited;
     }
-    _touchPantry();
+    _touchPantry(edited);
   }
 
   void deletePantryItem(String id) {
@@ -338,7 +383,13 @@ class AppState extends ChangeNotifier {
         if (ing.pantryItemId == id) ing.pantryItemId = null;
       }
     }
+    _bury(EntityKind.pantryItem, id);
     _touchPantry();
+    // Deliberately unstamped: the recipes above only had a link cleared, which
+    // every device recomputes for itself from the tombstone. Stamping them
+    // would make this device's copy of each one newer than the other device's
+    // genuine edits, so deleting one pantry item would quietly win a dozen
+    // unrelated recipe conflicts.
     _touchLibrary();
   }
 
@@ -347,16 +398,19 @@ class AppState extends ChangeNotifier {
     final a = alias.trim();
     if (item == null || a.isEmpty || item.matchesName(a)) return;
     item.aliases.add(a);
-    _touchPantry();
+    _touchPantry(item);
   }
 
   void removeAlias(String itemId, String alias) {
-    pantryItem(itemId)?.aliases.remove(alias);
-    _touchPantry();
+    final item = pantryItem(itemId);
+    item?.aliases.remove(alias);
+    _touchPantry(item);
   }
 
   void setAssumeStaples(bool value) {
     pantry.assumeStaples = value;
+    // A bare bool has no id to merge on, so it travels as a register.
+    pantry.registers['assumeStaples'] = Register(value, _clock.next());
     _touchPantry();
   }
 
@@ -448,7 +502,7 @@ class AppState extends ChangeNotifier {
             : '${existing.quantity} + $quantity';
       }
       if (!alreadyFrom) existing.sources.add(source);
-      _touchLibrary();
+      _touchLibrary(existing);
       return existing;
     }
 
@@ -461,7 +515,7 @@ class AppState extends ChangeNotifier {
       pantryItemId: pantryItemId,
     );
     library.groceries.add(item);
-    _touchLibrary();
+    _touchLibrary(item);
     return item;
   }
 
@@ -490,27 +544,29 @@ class AppState extends ChangeNotifier {
     final g = library.groceries.where((x) => x.id == id).firstOrNull;
     if (g == null) return;
     g.checked = !g.checked;
-    _touchLibrary();
+    _touchLibrary(g);
   }
 
   void moveGrocery(String id, String aisleId) {
     final g = library.groceries.where((x) => x.id == id).firstOrNull;
     if (g == null || g.aisleId == aisleId) return;
     g.aisleId = aisleId;
-    _touchLibrary();
+    _touchLibrary(g);
   }
 
   void renameGrocery(String id, String name) {
     final g = library.groceries.where((x) => x.id == id).firstOrNull;
     if (g == null || name.trim().isEmpty) return;
     g.name = name.trim();
-    _touchLibrary();
+    _touchLibrary(g);
   }
 
   /// The only thing that removes checked items, and it is one action for the
   /// whole list. Anything that maps to a pantry item goes back to the pantry.
   int clearChecked() {
     final checked = library.groceries.where((g) => g.checked).toList();
+    // Restocked items are a real change the other device needs to hear about.
+    final restocked = <PantryItem>[];
     for (final g in checked) {
       final known = pantry.items
           .where((p) => p.matchesName(g.name))
@@ -520,9 +576,13 @@ class AppState extends ChangeNotifier {
       } else {
         // Buying it again is what puts a run-out item back in stock.
         known.inStock = true;
+        restocked.add(known);
       }
     }
-    _touchPantry();
+    _touchPantry(restocked);
+    for (final g in checked) {
+      _bury(EntityKind.grocery, g.id);
+    }
     library.groceries.removeWhere((g) => g.checked);
     _touchLibrary();
     return checked.length;
@@ -535,7 +595,7 @@ class AppState extends ChangeNotifier {
       order: library.aisles.length,
     );
     library.aisles.add(a);
-    _touchLibrary();
+    _touchLibrary(a);
     return a;
   }
 
@@ -547,7 +607,9 @@ class AppState extends ChangeNotifier {
     for (var i = 0; i < list.length; i++) {
       list[i].order = i;
     }
-    _touchLibrary();
+    // Every aisle whose position moved is a real change the other device has
+    // to hear about, so they all restamp — not just the one dragged.
+    _touchLibrary(library.aisles);
   }
 
   // ── Meal plan ───────────────────────────────────────────────────────────
@@ -580,6 +642,12 @@ class AppState extends ChangeNotifier {
 
   void clearPlan(DateTime date, MealSlot slot) {
     final d = dayOnly(date);
+    for (final entry
+        in library.plan
+            .where((p) => dayOnly(p.date) == d && p.slot == slot)
+            .toList()) {
+      _bury(EntityKind.planEntry, entry.id);
+    }
     library.plan.removeWhere((p) => dayOnly(p.date) == d && p.slot == slot);
     _touchLibrary();
   }
@@ -756,6 +824,109 @@ class AppState extends ChangeNotifier {
   Future<int> librarySize() => _library.sizeInBytes();
   Future<int> pantrySize() => _pantry.sizeInBytes();
 
+  // ── Reconciling with another device ─────────────────────────────────────
+
+  /// Works out what merging [incomingLibrary] and [incomingPantry] into this
+  /// device would do. Nothing is written — pass the result to [applyMerge].
+  ///
+  /// The two databases are merged separately, as they are stored, but they are
+  /// applied together: cross-references are repaired across the merged pair
+  /// before either file is written.
+  ({MergePlan library, MergePlan pantry}) planMerge(
+    LibraryDatabase incomingLibrary,
+    PantryDatabase incomingPantry, {
+    Map<String, Resolution> answers = const {},
+    String remoteLabel = 'the other device',
+  }) {
+    final policy = settings.conflictPolicy;
+    return (
+      library: mergeDatabase(
+        library.toSnapshot(),
+        incomingLibrary.toSnapshot(),
+        policy: policy,
+        answers: answers,
+        remoteLabel: remoteLabel,
+      ),
+      pantry: mergeDatabase(
+        pantry.toSnapshot(),
+        incomingPantry.toSnapshot(),
+        policy: policy,
+        answers: answers,
+        remoteLabel: remoteLabel,
+      ),
+    );
+  }
+
+  /// Applies a plan, repairs what the merge could not have known, and saves.
+  ///
+  /// Refuses a plan with unanswered conflicts rather than picking for the user:
+  /// the whole point of "ask" is that it is their call.
+  Future<RepairReport> applyMerge(
+    MergePlan libraryPlan,
+    MergePlan pantryPlan,
+  ) async {
+    if (!libraryPlan.isComplete || !pantryPlan.isComplete) {
+      throw StateError('Answer the conflicts before applying the merge.');
+    }
+
+    library = libraryFromSnapshot(libraryPlan.result);
+    pantry = pantryFromSnapshot(pantryPlan.result);
+
+    final report = repairCrossReferences(library, pantry, clock: _clock);
+
+    // Undebounced: a merge is not a keystroke, and the next thing that happens
+    // is usually the peer being told we are done.
+    await Future.wait([_flushLibrary(), _flushPantry()]);
+    notifyListeners();
+    return report;
+  }
+
+  /// Replaces both databases wholesale with another device's, keeping a copy
+  /// of what was here first.
+  ///
+  /// This is how two devices that have never synced are brought to a common
+  /// baseline. It is destructive by design — the point is that afterwards both
+  /// hold the same records under the same ids — so the outgoing databases are
+  /// backed up before anything is overwritten.
+  Future<AdoptionResult> adoptFrom({
+    required String libraryPath,
+    required String pantryPath,
+  }) async {
+    final replacing = AdoptionResult(
+      replacedRecipes: library.recipes.length,
+      replacedPantryItems: pantry.items.length,
+      backupSuffix: DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .split('.')
+          .first,
+    );
+
+    await flush();
+    await _library.exportTo(
+      await _backupPath('library', replacing.backupSuffix),
+    );
+    await _pantry.exportTo(await _backupPath('pantry', replacing.backupSuffix));
+
+    library = await _library.importFrom(libraryPath, _migrationContext());
+    pantry = await _pantry.importFrom(pantryPath, _migrationContext());
+
+    // The adopted files came from a device with its own id; everything in them
+    // keeps the stamps it arrived with, so the two devices now agree on both
+    // identity and history.
+    _clock.seed(_highWaterMark(library, pantry));
+    repairCrossReferences(library, pantry, clock: _clock);
+    await Future.wait([_flushLibrary(), _flushPantry()]);
+
+    notifyListeners();
+    return replacing;
+  }
+
+  Future<String> _backupPath(String name, String suffix) async {
+    final f = await (name == 'library' ? _library : _pantry).file();
+    return '${f.path}.replaced-$suffix.bak';
+  }
+
   Future<void> exportLibrary(String path) async {
     await flush();
     await _library.exportTo(path);
@@ -802,6 +973,21 @@ enum SuggestionSort {
 
   const SuggestionSort(this.label);
   final String label;
+}
+
+/// What adopting another device's databases replaced.
+class AdoptionResult {
+  const AdoptionResult({
+    required this.replacedRecipes,
+    required this.replacedPantryItems,
+    required this.backupSuffix,
+  });
+
+  final int replacedRecipes;
+  final int replacedPantryItems;
+
+  /// Identifies the `.replaced-<when>.bak` files written before the overwrite.
+  final String backupSuffix;
 }
 
 extension _FirstOrNull<T> on Iterable<T> {

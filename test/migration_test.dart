@@ -55,7 +55,10 @@ void main() {
       expect(migrated.mealTypeId, raw['mealTypeId']);
       expect(migrated.servings, raw['servings']);
       expect(migrated.tags, (raw['tags'] as List).cast<String>());
-      expect(migrated.components, hasLength((raw['components'] as List).length));
+      expect(
+        migrated.components,
+        hasLength((raw['components'] as List).length),
+      );
       expect(
         migrated.ingredients,
         hasLength((raw['ingredients'] as List).length),
@@ -65,7 +68,9 @@ void main() {
       // Nested records are internal to a recipe and are deliberately unstamped.
       final rawLine =
           (raw['ingredients'] as List).first as Map<String, dynamic>;
-      final line = migrated.ingredients.firstWhere((i) => i.id == rawLine['id']);
+      final line = migrated.ingredients.firstWhere(
+        (i) => i.id == rawLine['id'],
+      );
       expect(line.name, rawLine['name']);
       expect(line.quantity, (rawLine['quantity'] as num?)?.toDouble());
       expect(line.unit, rawLine['unit'] ?? '');
@@ -82,10 +87,12 @@ void main() {
       }
     });
 
-    test('records the migration point so backfilled stamps stay recognisable',
-        () {
-      expect(after.migratedAt, ctx.fileModifiedAt);
-    });
+    test(
+      'records the migration point so backfilled stamps stay recognisable',
+      () {
+        expect(after.migratedAt, ctx.fileModifiedAt);
+      },
+    );
 
     test('starts with no tombstones', () {
       expect(after.tombstones, isEmpty);
@@ -141,8 +148,9 @@ void main() {
       for (final raw in withEntry) {
         final entered = DateTime.parse(raw['enteredOn'] as String).toUtc();
         final item = after.items.firstWhere((i) => i.id == raw['id']);
-        final expected =
-            entered.isBefore(ctx.backfillAt) ? entered : ctx.backfillAt;
+        final expected = entered.isBefore(ctx.backfillAt)
+            ? entered
+            : ctx.backfillAt;
         expect(item.updatedAt, expected);
       }
     });
@@ -196,16 +204,18 @@ void main() {
       expect(schemaOf(onDisk), kSchemaVersion);
     });
 
-    test('refuses a file from a newer build instead of downgrading it',
-        () async {
-      // Decoding it with today's fromJson would silently drop every unknown
-      // field, and saving would then write that loss to disk.
-      final f = File('${dir.path}${Platform.pathSeparator}library.json');
-      f.writeAsStringSync(jsonEncode({'schema': 99, 'recipes': <dynamic>[]}));
-      expect(
-        () => libraryStore(directory: dir).load(ctx),
-        throwsA(isA<SchemaTooNewException>()),
-      );
-    });
+    test(
+      'refuses a file from a newer build instead of downgrading it',
+      () async {
+        // Decoding it with today's fromJson would silently drop every unknown
+        // field, and saving would then write that loss to disk.
+        final f = File('${dir.path}${Platform.pathSeparator}library.json');
+        f.writeAsStringSync(jsonEncode({'schema': 99, 'recipes': <dynamic>[]}));
+        expect(
+          () => libraryStore(directory: dir).load(ctx),
+          throwsA(isA<SchemaTooNewException>()),
+        );
+      },
+    );
   });
 }

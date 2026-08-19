@@ -39,6 +39,19 @@ mixin Stamped {
       stamp = Stamp.tryRead(j) ?? Stamp.epoch;
 }
 
+/// Orders anything with an `order` and an `id`.
+///
+/// The id is not decoration. Two devices that each reorder a list produce
+/// duplicate `order` values once merged, and renormalising them would mean
+/// either restamping the records — an endless ping-pong of "newer"
+/// reorderings — or leaving the two devices' stored bytes different forever.
+/// Breaking the tie on the id needs no writes and gives both sides the same
+/// sequence.
+int byOrderThenId(dynamic a, dynamic b) {
+  final byOrder = (a.order as int).compareTo(b.order as int);
+  return byOrder != 0 ? byOrder : (a.id as String).compareTo(b.id as String);
+}
+
 /// Lets a `toJson` map take a record's stamp without restating the keys.
 extension StampedJson on Map<String, dynamic> {
   Map<String, dynamic> withStamp(Stamped e) {
@@ -315,15 +328,15 @@ class Recipe with Stamped {
   final List<RecipeStep> steps;
 
   List<RecipeComponent> get orderedComponents =>
-      [...components]..sort((a, b) => a.order.compareTo(b.order));
+      [...components]..sort(byOrderThenId);
 
   List<Ingredient> ingredientsOf(String componentId) =>
       ingredients.where((i) => i.componentId == componentId).toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
+        ..sort(byOrderThenId);
 
   List<RecipeStep> stepsOf(String componentId) =>
       steps.where((s) => s.componentId == componentId).toList()
-        ..sort((a, b) => a.order.compareTo(b.order));
+        ..sort(byOrderThenId);
 
   /// Steps in the order they are cooked and numbered — component by component,
   /// one continuous run. Every screen that numbers a step uses this list so the

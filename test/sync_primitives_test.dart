@@ -65,12 +65,15 @@ void main() {
   group('tombstone GC', () {
     final now = t(100 * 24 * 3600 * 1000); // day 100
 
-    Tombstone stone(String id, int day, {EntityKind kind = EntityKind.recipe}) =>
-        Tombstone(
-          kind: kind,
-          id: id,
-          stamp: Stamp(t(day * 24 * 3600 * 1000), 'd'),
-        );
+    Tombstone stone(
+      String id,
+      int day, {
+      EntityKind kind = EntityKind.recipe,
+    }) => Tombstone(
+      kind: kind,
+      id: id,
+      stamp: Stamp(t(day * 24 * 3600 * 1000), 'd'),
+    );
 
     test('keeps one a peer has not seen yet', () {
       final kept = gcTombstones(
