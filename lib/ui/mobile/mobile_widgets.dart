@@ -5,6 +5,7 @@ import '../../state/app_state.dart';
 import '../../state/nav.dart';
 import '../../theme/tokens.dart';
 import '../settings/settings_page.dart';
+import '../widgets/version_badge.dart';
 
 /// The Library header: brand on the left, the read-only sync chip on the
 /// right. The chip is the phone's equivalent of the desktop sidebar footer —
@@ -27,13 +28,16 @@ class MobileHeader extends StatelessWidget {
         children: [
           Icon(Icons.menu_book_outlined, size: 22, color: t.accent),
           const SizedBox(width: 10),
-          Expanded(
+          Flexible(
             child: Text(
               title,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
           ),
+          const SizedBox(width: 7),
+          const VersionBadge(),
+          const Spacer(),
           if (showSync)
             _SyncChip(
               paired: app.settings.devices.isNotEmpty,

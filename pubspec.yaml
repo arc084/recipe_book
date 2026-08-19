@@ -2,7 +2,7 @@ name: recipe_book
 description: "Private, local-only recipe manager for Windows and Android."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 0.7.0+8
 
 environment:
   sdk: ^3.12.2

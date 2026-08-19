@@ -6,6 +6,7 @@ import 'package:window_manager/window_manager.dart';
 import '../../state/app_state.dart';
 import '../../state/nav.dart';
 import '../../theme/tokens.dart';
+import '../widgets/version_badge.dart';
 import '../groceries/groceries_page.dart';
 import '../library/library_page.dart';
 import '../pantry/pantry_page.dart';
@@ -182,13 +183,25 @@ class _Sidebar extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 16),
-            child: Row(
+            // The version sits under the brand rather than beside it: the
+            // sidebar is a fixed 216px, and a non-release label — "0.7.0 ·
+            // debug" — is wider than the room left next to "My Cookbook".
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.menu_book_outlined, size: 20, color: t.accent),
-                const SizedBox(width: 9),
-                Text(
-                  'My Cookbook',
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  children: [
+                    Icon(Icons.menu_book_outlined, size: 20, color: t.accent),
+                    const SizedBox(width: 9),
+                    Text(
+                      'My Cookbook',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(left: 29, top: 3),
+                  child: VersionBadge(),
                 ),
               ],
             ),
