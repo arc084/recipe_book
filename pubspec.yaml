@@ -21,6 +21,10 @@ dependencies:
   # Stable ids for every record, so sync has something to reconcile on.
   uuid: ^4.5.1
 
+  # Content hashes: identifying a photo by its bytes rather than its path, and
+  # minting keep-both ids that both devices derive identically.
+  crypto: ^3.0.6
+
   # Dates on the meal plan.
   intl: ^0.20.2
 
