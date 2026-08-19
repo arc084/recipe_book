@@ -295,6 +295,7 @@ class Recipe with Stamped {
     required this.mealTypeId,
     List<String>? tags,
     this.photoPath,
+    this.photoHash,
     this.servings = 4,
     this.sourceUrl,
     this.notes = '',
@@ -316,7 +317,15 @@ class Recipe with Stamped {
 
   /// An absolute path to a file the user dropped. Null shows the placeholder —
   /// no stock imagery is ever substituted.
+  ///
+  /// This is **local**: it is built from this device's own storage directory,
+  /// so it differs between a Windows install and an Android one by
+  /// construction. It is never compared when reconciling and never taken from
+  /// a peer — [photoHash] is what identifies the picture itself.
   String? photoPath;
+
+  /// The photograph's content hash, which is the same on every device.
+  String? photoHash;
   int servings;
   String? sourceUrl;
   String notes;
@@ -361,6 +370,7 @@ class Recipe with Stamped {
     mealTypeId: mealTypeId,
     tags: [...tags],
     photoPath: photoPath,
+    photoHash: photoHash,
     servings: servings,
     sourceUrl: sourceUrl,
     notes: notes,
@@ -377,6 +387,7 @@ class Recipe with Stamped {
     mealTypeId: j['mealTypeId'] as String,
     tags: (j['tags'] as List?)?.cast<String>() ?? <String>[],
     photoPath: j['photoPath'] as String?,
+    photoHash: j['photoHash'] as String?,
     servings: (j['servings'] as num?)?.toInt() ?? 4,
     sourceUrl: j['sourceUrl'] as String?,
     notes: j['notes'] as String? ?? '',
@@ -402,6 +413,7 @@ class Recipe with Stamped {
     'mealTypeId': mealTypeId,
     'tags': tags,
     'photoPath': photoPath,
+    'photoHash': photoHash,
     'servings': servings,
     'sourceUrl': sourceUrl,
     'notes': notes,

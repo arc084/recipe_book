@@ -31,14 +31,21 @@ class _FakeHost implements SyncHost {
   final List<PairedDevice> pairedDevices = [];
 
   final List<LibraryDatabase> received = [];
+  final List<ConflictPolicy> policies = [];
   final Map<String, List<int>> photos = {};
 
   @override
   Future<void> onPaired(PairedDevice device) async => pairedDevices.add(device);
 
   @override
-  Future<void> onIncoming(LibraryDatabase l, PantryDatabase p) async =>
-      received.add(l);
+  Future<void> onIncoming(
+    LibraryDatabase l,
+    PantryDatabase p,
+    ConflictPolicy policy,
+  ) async {
+    received.add(l);
+    policies.add(policy);
+  }
 
   @override
   Future<List<int>?> photoBytes(String hash) async => photos[hash];
@@ -184,6 +191,7 @@ void main() {
           ),
           library: LibraryDatabase(),
           pantry: PantryDatabase(),
+          policy: ConflictPolicy.newestWins,
         ),
         throwsA(isA<SyncException>()),
       );
@@ -285,6 +293,7 @@ void main() {
         peer: peer,
         library: mine,
         pantry: PantryDatabase(),
+        policy: ConflictPolicy.newestWins,
       );
 
       // Ours arrived there…
@@ -292,6 +301,20 @@ void main() {
       // …and theirs came back.
       expect(result.library.recipes.single.id, 'from-host');
       expect(result.peerClock, isNotNull);
+    });
+
+    test('the host is told the initiator's policy, not its own', () async {
+      // One session, one policy. Otherwise a "newest wins" host quietly
+      // settles the very conflicts an "ask" peer opened the session to see.
+      final peer = await pair();
+      await client.exchange(
+        base,
+        peer: peer,
+        library: LibraryDatabase(),
+        pantry: PantryDatabase(),
+        policy: ConflictPolicy.ask,
+      );
+      expect(host.policies.single, ConflictPolicy.ask);
     });
 
     test('stamps survive the round trip', () async {
@@ -306,6 +329,7 @@ void main() {
         peer: peer,
         library: LibraryDatabase(),
         pantry: PantryDatabase(),
+        policy: ConflictPolicy.newestWins,
       );
 
       expect(result.library.recipes.single.updatedAt, recipe.updatedAt);
@@ -322,6 +346,7 @@ void main() {
         peer: peer,
         library: grave,
         pantry: PantryDatabase(),
+        policy: ConflictPolicy.newestWins,
       );
       expect(result.library.tombstones, isEmpty);
     });

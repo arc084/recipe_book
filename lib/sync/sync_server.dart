@@ -21,8 +21,15 @@ abstract class SyncHost {
   /// Called when a joining device presents a valid code.
   Future<void> onPaired(PairedDevice device);
 
-  /// Called when a peer pushes its merged state.
-  Future<void> onIncoming(LibraryDatabase library, PantryDatabase pantry);
+  /// Called when a peer pushes its state.
+  ///
+  /// [policy] is the *initiator's*, not ours — see the note on the wire
+  /// format in `SyncClient.exchange`.
+  Future<void> onIncoming(
+    LibraryDatabase library,
+    PantryDatabase pantry,
+    ConflictPolicy policy,
+  );
 
   /// Bytes of a stored photo, by content hash. Null when we do not have it.
   Future<List<int>?> photoBytes(String hash);
@@ -225,6 +232,7 @@ class SyncServer {
     await host.onIncoming(
       LibraryDatabase.fromJson(json['library'] as Map<String, dynamic>),
       PantryDatabase.fromJson(json['pantry'] as Map<String, dynamic>),
+      ConflictPolicy.parse(json['policy'] as String?),
     );
 
     await _json(request, {

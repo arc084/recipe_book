@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../data/database.dart';
@@ -27,7 +28,8 @@ class AppState extends ChangeNotifier {
   /// [directory] is for tests: it puts the three files somewhere temporary, so
   /// two AppStates can be run side by side in one process and reconciled.
   AppState({Directory? directory})
-    : _library = libraryStore(directory: directory),
+    : _directory = directory,
+      _library = libraryStore(directory: directory),
       _pantry = pantryStore(directory: directory),
       _settingsStore = JsonStore<AppSettings>(
         fileName: 'settings.json',
@@ -35,6 +37,10 @@ class AppState extends ChangeNotifier {
         encode: (s) => s.toJson(),
         directory: directory,
       );
+
+  /// Set in tests, so photos land beside the temporary databases rather than
+  /// in the real app-support directory.
+  final Directory? _directory;
 
   final JsonStore<LibraryDatabase> _library;
   final JsonStore<PantryDatabase> _pantry;
@@ -278,9 +284,7 @@ class AppState extends ChangeNotifier {
     final r = recipe(recipeId);
     if (r == null) return;
 
-    final base = await getApplicationSupportDirectory();
-    final dir = Directory('${base.path}${Platform.pathSeparator}photos');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    final dir = await _photoDir();
 
     final dot = sourcePath.lastIndexOf('.');
     final ext = dot == -1 ? '.jpg' : sourcePath.substring(dot).toLowerCase();
@@ -290,9 +294,13 @@ class AppState extends ChangeNotifier {
     final target = '${dir.path}${Platform.pathSeparator}$name';
 
     final previous = r.photoPath;
-    await File(sourcePath).copy(target);
+    final bytes = await File(sourcePath).readAsBytes();
+    await File(target).writeAsBytes(bytes, flush: true);
 
     r.photoPath = target;
+    // The hash is what identifies the picture between devices; the path never
+    // could, since it is built from this device's own storage directory.
+    r.photoHash = sha256.convert(bytes).toString();
     _touchLibrary(r);
 
     // Drop the file it replaced, now that the new one is safely in place.
@@ -837,20 +845,29 @@ class AppState extends ChangeNotifier {
     PantryDatabase incomingPantry, {
     Map<String, Resolution> answers = const {},
     String remoteLabel = 'the other device',
+
+    /// Set when the two devices' clocks disagree enough that "newest" would be
+    /// comparing times that do not mean the same thing.
+    bool forceReview = false,
+
+    /// The session's policy, when the device that started it set one.
+    ConflictPolicy? policy,
   }) {
-    final policy = settings.conflictPolicy;
+    final resolved = forceReview
+        ? ConflictPolicy.ask
+        : (policy ?? settings.conflictPolicy);
     return (
       library: mergeDatabase(
         library.toSnapshot(),
         incomingLibrary.toSnapshot(),
-        policy: policy,
+        policy: resolved,
         answers: answers,
         remoteLabel: remoteLabel,
       ),
       pantry: mergeDatabase(
         pantry.toSnapshot(),
         incomingPantry.toSnapshot(),
-        policy: policy,
+        policy: resolved,
         answers: answers,
         remoteLabel: remoteLabel,
       ),
@@ -925,6 +942,98 @@ class AppState extends ChangeNotifier {
   Future<String> _backupPath(String name, String suffix) async {
     final f = await (name == 'library' ? _library : _pantry).file();
     return '${f.path}.replaced-$suffix.bak';
+  }
+
+  // ── Devices ─────────────────────────────────────────────────────────────
+
+  /// Records a device we have paired with, replacing any earlier record of it.
+  void rememberDevice(PairedDevice device) {
+    settings.devices.removeWhere((d) => d.id == device.id);
+    settings.devices.add(device);
+    _touchSettings();
+  }
+
+  /// Notes that a session with [peer] finished, and how much it holds.
+  ///
+  /// The watermarks are what make a second sync with nothing in between a true
+  /// no-op: records at or below them are not new, so nothing transfers and —
+  /// more importantly — nothing is re-asked. They advance only after the merge
+  /// is safely written, so a failure part-way through simply redoes the work.
+  void recordSync(
+    PairedDevice peer,
+    LibraryDatabase theirLibrary,
+    PantryDatabase theirPantry,
+  ) {
+    final now = DateTime.now().toUtc();
+    peer
+      ..lastSync = now
+      ..recipeCount = theirLibrary.recipes.length
+      ..pantryCount = theirPantry.items.length
+      ..libraryWatermark = _highWaterMark(theirLibrary, null).at
+      ..pantryWatermark = _highWaterMark(null, theirPantry).at;
+    settings.lastSync = now;
+    rememberDevice(peer);
+  }
+
+  // ── Photos by content ───────────────────────────────────────────────────
+
+  Future<Directory> _photoDir() async {
+    final base = _directory ?? await getApplicationSupportDirectory();
+    final dir = Directory('${base.path}${Platform.pathSeparator}photos');
+    if (!await dir.exists()) await dir.create(recursive: true);
+    return dir;
+  }
+
+  /// A photograph by content hash, or null when this device does not hold it.
+  Future<List<int>?> photoBytesByHash(String hash) async {
+    for (final r in library.recipes) {
+      if (r.photoHash != hash || r.photoPath == null) continue;
+      final f = File(r.photoPath!);
+      if (await f.exists()) return f.readAsBytes();
+    }
+    return null;
+  }
+
+  /// Hashes named by a recipe whose bytes are not on this device.
+  ///
+  /// After a merge, a recipe that arrived from the other device names a
+  /// picture we have never seen. This is the list to go and fetch.
+  Future<List<String>> missingPhotoHashes() async {
+    final wanted = <String>{};
+    for (final r in library.recipes) {
+      final hash = r.photoHash;
+      if (hash == null) continue;
+      final path = r.photoPath;
+      if (path != null && await File(path).exists()) continue;
+      wanted.add(hash);
+    }
+    return wanted.toList();
+  }
+
+  /// Stores bytes fetched from a peer and points every recipe expecting that
+  /// hash at the local copy.
+  Future<void> storePhotoBytes(String hash, List<int> bytes) async {
+    // Trust nothing: a peer that hands back bytes which do not hash to what we
+    // asked for has either a bug or bad intent, and either way the file is not
+    // the one the recipe means.
+    if (sha256.convert(bytes).toString() != hash) return;
+
+    final dir = await _photoDir();
+    final target = '${dir.path}${Platform.pathSeparator}$hash.jpg';
+    await File(target).writeAsBytes(bytes, flush: true);
+
+    var changed = false;
+    for (final r in library.recipes) {
+      if (r.photoHash != hash) continue;
+      r.photoPath = target;
+      changed = true;
+    }
+    // Deliberately unstamped: pointing at a local file is this device catching
+    // up, not an edit the other device needs told about.
+    if (changed) {
+      notifyListeners();
+      await _flushLibrary();
+    }
   }
 
   Future<void> exportLibrary(String path) async {

@@ -11,6 +11,32 @@ import 'tombstone.dart';
 /// matter which side won last time. `photoHash` is compared in its place.
 const _nonPortable = <String>{'photoPath', 'updatedAt', 'updatedBy'};
 
+/// Fields that belong to *this* device and must never be taken from a peer.
+///
+/// Leaving a field out of the comparison is not the same as leaving it out of
+/// the transfer: when the peer's copy wins, its whole payload is adopted, and
+/// without this its `photoPath` would come too — pointing at a directory that
+/// exists only on the other machine. The picture itself travels by
+/// `photoHash`; the path is rebuilt locally.
+const localOnlyFields = <String>{'photoPath'};
+
+/// Takes [winner] but keeps the local device's own fields from [local].
+Map<String, dynamic> preserveLocalFields(
+  Map<String, dynamic> winner,
+  Map<String, dynamic>? local,
+) {
+  if (local == null) return winner;
+  final out = Map<String, dynamic>.from(winner);
+  for (final key in localOnlyFields) {
+    if (local.containsKey(key)) {
+      out[key] = local[key];
+    } else {
+      out.remove(key);
+    }
+  }
+  return out;
+}
+
 /// Lists whose order carries no meaning, so two devices that added the same
 /// members in a different sequence still compare equal.
 const _unorderedStringLists = <String>{'tags', 'aliases', 'sources'};

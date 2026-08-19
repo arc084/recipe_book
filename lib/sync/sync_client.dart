@@ -158,8 +158,13 @@ class SyncClient {
     required PairedDevice peer,
     required LibraryDatabase library,
     required PantryDatabase pantry,
+    required ConflictPolicy policy,
   }) async {
     final body = jsonEncode({
+      // One session, one policy: whoever started it decides. Otherwise a
+      // "newest wins" host quietly settles the very conflicts an "ask" peer
+      // opened the session to be shown.
+      'policy': policy.name,
       'library': library.toJson(),
       'pantry': pantry.toJson(),
     });

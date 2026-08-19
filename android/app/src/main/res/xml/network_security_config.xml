@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sync talks plain HTTP to another device on the same network. A self-signed
+  certificate with no authority to check it against would prove nothing, so the
+  requests are signed with the key the two devices agreed at pairing instead.
+
+  Cleartext is therefore permitted, but only to private address ranges — never
+  to the internet at large. Recipe import still goes out over HTTPS.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.0.0/8</domain>
+        <domain includeSubdomains="false">172.16.0.0/12</domain>
+        <domain includeSubdomains="false">192.168.0.0/16</domain>
+        <domain includeSubdomains="false">169.254.0.0/16</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>

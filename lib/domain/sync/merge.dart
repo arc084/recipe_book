@@ -266,7 +266,9 @@ MergePlan mergeDatabase(
           Resolution.takeLocal => mine ?? survivor,
           Resolution.keepBoth => survivor,
         };
-        entities[id] = keep;
+        entities[id] = keep.withJson(
+          preserveLocalFields(keep.json, mine?.json),
+        );
         tombstones.remove(id);
         if (mine == null) stats._bump(stats.added, keep.kind);
       }
@@ -279,7 +281,9 @@ MergePlan mergeDatabase(
       continue;
     }
     if (mine == null) {
-      entities[id] = theirs;
+      // Nothing local to preserve, but strip the peer's own paths: they name
+      // directories that do not exist here.
+      entities[id] = theirs.withJson(preserveLocalFields(theirs.json, null));
       stats._bump(stats.added, theirs.kind);
       continue;
     }
@@ -293,7 +297,9 @@ MergePlan mergeDatabase(
     if (sameContent(mine.kind, mine.json, theirs.json)) {
       // Same thing, differently stamped. Converging on the higher stamp is
       // what stops this pair oscillating on every future exchange.
-      entities[id] = mine.stamp >= theirs.stamp ? mine : theirs;
+      entities[id] = mine.stamp >= theirs.stamp
+          ? mine
+          : theirs.withJson(preserveLocalFields(theirs.json, mine.json));
       continue;
     }
 
@@ -325,7 +331,9 @@ MergePlan mergeDatabase(
     };
     final loser = identical(winner, mine) ? theirs : mine;
 
-    entities[id] = winner;
+    entities[id] = identical(winner, mine)
+        ? winner
+        : winner.withJson(preserveLocalFields(winner.json, mine.json));
     if (!identical(winner, mine)) stats._bump(stats.updated, winner.kind);
 
     if (resolution == Resolution.keepBoth && _canKeepBoth(mine.kind)) {
