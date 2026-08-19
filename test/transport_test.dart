@@ -303,7 +303,7 @@ void main() {
       expect(result.peerClock, isNotNull);
     });
 
-    test('the host is told the initiator's policy, not its own', () async {
+    test("the host is told the initiating device's policy", () async {
       // One session, one policy. Otherwise a "newest wins" host quietly
       // settles the very conflicts an "ask" peer opened the session to see.
       final peer = await pair();
