@@ -6,6 +6,27 @@ const _uuid = Uuid();
 
 String newId() => _uuid.v4();
 
+/// A fixed namespace for records that ship with the app.
+///
+/// Any constant uuid works; this one is arbitrary and must never change, or
+/// every install's seed ids would shift and stop matching each other's.
+const _seedNamespace = '9f1b0d3e-5a4c-4f2b-9c7e-2b6d8a1c3f04';
+
+/// A stable id for a record that comes from the shipped seed.
+///
+/// The seed used to mint a fresh v4 uuid on every install, which meant two
+/// devices held the same shipped recipes under different ids — so a sync saw
+/// them as unrelated records and added both, duplicating the whole corpus.
+/// Deriving the id from what the record *is* makes every install agree.
+///
+/// v5 is a hash of (namespace, name), so it is deterministic and cannot
+/// collide with the v4 ids [newId] mints for the user's own records.
+String seedId(String kind, String key) =>
+    _uuid.v5(_seedNamespace, '$kind|$key');
+
+/// [seedId] under a name the tests can reach without importing internals.
+String seedIdFor(String kind, String key) => seedId(kind, key);
+
 /// A record the merge treats as a syncable unit.
 ///
 /// Every one of these carries when it last changed and which device changed

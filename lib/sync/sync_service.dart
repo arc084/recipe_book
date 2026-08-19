@@ -110,6 +110,13 @@ class SyncService extends ChangeNotifier implements SyncHost {
   @override
   Future<List<int>?> photoBytes(String hash) => _app.photoBytesByHash(hash);
 
+  @override
+  Future<List<String>> missingPhotoHashes() => _app.missingPhotoHashes();
+
+  @override
+  Future<void> storePhoto(String hash, List<int> bytes) =>
+      _app.storePhotoBytes(hash, bytes);
+
   // ── Hosting ─────────────────────────────────────────────────────────────
 
   /// Starts listening and shows a code for another device to type.
@@ -250,6 +257,7 @@ class SyncService extends ChangeNotifier implements SyncHost {
 
       if (pendingConflicts.isEmpty) {
         await _fetchMissingPhotos(client, peer, base);
+        await _pushWantedPhotos(client, peer, base, exchange.wantedPhotos);
         _app.recordSync(peer, exchange.library, exchange.pantry);
       }
 
@@ -344,6 +352,29 @@ class SyncService extends ChangeNotifier implements SyncHost {
       } on SyncException {
         // A photo that will not come down is not worth failing the sync over;
         // the recipe still shows its placeholder and the next sync retries.
+      }
+    }
+  }
+
+  /// Sends the peer the photographs it said it was missing.
+  ///
+  /// The other half of [_fetchMissingPhotos]: the host cannot dial us, so
+  /// without this photos would only ever travel from host to initiator, and a
+  /// picture taken on the phone would never reach the laptop.
+  Future<void> _pushWantedPhotos(
+    SyncClient client,
+    PairedDevice peer,
+    Uri base,
+    List<String> wanted,
+  ) async {
+    for (final hash in wanted) {
+      final bytes = await _app.photoBytesByHash(hash);
+      if (bytes == null) continue;
+      try {
+        await client.pushPhoto(base, peer: peer, hash: hash, bytes: bytes);
+      } on SyncException {
+        // Same reasoning as fetching: a photo that will not go up is not
+        // worth failing the sync over, and the next session retries.
       }
     }
   }

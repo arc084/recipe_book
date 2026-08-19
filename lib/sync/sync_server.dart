@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
+
 import '../data/database.dart';
 import '../data/settings.dart';
 import 'protocol.dart';
@@ -35,6 +37,12 @@ abstract class SyncHost {
 
   /// Bytes of a stored photo, by content hash. Null when we do not have it.
   Future<List<int>?> photoBytes(String hash);
+
+  /// Hashes this device references but does not hold, for the peer to push.
+  Future<List<String>> missingPhotoHashes();
+
+  /// Stores a photograph the peer pushed.
+  Future<void> storePhoto(String hash, List<int> bytes);
 }
 
 /// Answers on the local network for one paired peer at a time.
@@ -145,6 +153,8 @@ class SyncServer {
       switch (path) {
         case '/sync':
           await _sync(request, body);
+        case _ when path.startsWith('/photo/') && request.method == 'PUT':
+          await _receivePhoto(request, path.substring('/photo/'.length), body);
         case _ when path.startsWith('/photo/'):
           await _photo(request, path.substring('/photo/'.length));
         default:
@@ -242,7 +252,29 @@ class SyncServer {
       'now': _now().toUtc().toIso8601String(),
       'library': host.library.toJson(),
       'pantry': host.pantry.toJson(),
+      // Photos have to be asked for, and only one side can do the asking: the
+      // initiator dialled us, so we have no route back to it. Naming what we
+      // are missing lets it push those bytes to /photo, which is what makes
+      // the transfer work in both directions rather than only downhill.
+      'wantPhotos': await host.missingPhotoHashes(),
     });
+  }
+
+  /// Takes a photograph the peer pushed, refusing anything whose bytes do not
+  /// hash to the name it arrived under — the hash is the identity, so an
+  /// unverified one would let a peer overwrite any photo with any content.
+  Future<void> _receivePhoto(
+    HttpRequest request,
+    String hash,
+    List<int> body,
+  ) async {
+    final actual = sha256.convert(body).toString();
+    if (actual != hash) {
+      await _error(request, HttpStatus.badRequest, 'bytes do not match hash');
+      return;
+    }
+    await host.storePhoto(hash, body);
+    await _json(request, {'stored': hash});
   }
 
   Future<void> _photo(HttpRequest request, String hash) async {

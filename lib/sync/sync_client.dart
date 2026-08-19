@@ -54,11 +54,16 @@ class SyncExchange {
     required this.library,
     required this.pantry,
     required this.peerClock,
+    this.wantedPhotos = const [],
   });
 
   final LibraryDatabase library;
   final PantryDatabase pantry;
   final DateTime peerClock;
+
+  /// Hashes the peer holds a reference to but not the bytes of. It cannot dial
+  /// us to ask, so we push these.
+  final List<String> wantedPhotos;
 }
 
 /// The joining half of the conversation.
@@ -187,6 +192,9 @@ class SyncClient {
       ),
       pantry: PantryDatabase.fromJson(json['pantry'] as Map<String, dynamic>),
       peerClock: DateTime.parse(json['now'] as String),
+      wantedPhotos: [
+        for (final h in (json['wantPhotos'] as List? ?? [])) h as String,
+      ],
     );
   }
 
@@ -211,6 +219,33 @@ class SyncClient {
         )
         .timeout(_timeout);
     return response.statusCode == HttpStatus.ok ? response.bodyBytes : null;
+  }
+
+  /// Sends a photograph the peer asked for, named by its content hash.
+  Future<void> pushPhoto(
+    Uri base, {
+    required PairedDevice peer,
+    required String hash,
+    required List<int> bytes,
+  }) async {
+    final path = '/photo/$hash';
+    final signer = RequestSigner(peer.psk!);
+    await _wrap(
+      () => _http.put(
+        base.replace(path: path),
+        headers: {
+          'content-type': 'application/octet-stream',
+          ...signer.headersFor(
+            deviceId: deviceId,
+            method: 'PUT',
+            path: path,
+            body: bytes,
+            now: _now().toUtc(),
+          ),
+        },
+        body: bytes,
+      ),
+    );
   }
 
   // ── Plumbing ──────────────────────────────────────────────────────────────

@@ -91,8 +91,31 @@ class AppState extends ChangeNotifier {
       pantry = savedPantry;
     }
 
+    await _backfillPhotoHashes();
+
     loaded = true;
     notifyListeners();
+  }
+
+  /// Hashes photographs that were adopted before photos carried a hash.
+  ///
+  /// Photos travel between devices by content hash, never by path — the paths
+  /// differ by construction between a Windows install and an Android one. A
+  /// recipe with a photo but no hash is therefore invisible to the transfer:
+  /// it can neither be advertised nor asked for. Nothing stamps the recipe,
+  /// because filling in a derived value is not an edit and must not win a
+  /// conflict against the other device's genuine one.
+  Future<void> _backfillPhotoHashes() async {
+    var filled = 0;
+    for (final r in library.recipes) {
+      final path = r.photoPath;
+      if (path == null || r.photoHash != null) continue;
+      final file = File(path);
+      if (!await file.exists()) continue;
+      r.photoHash = sha256.convert(await file.readAsBytes()).toString();
+      filled++;
+    }
+    if (filled > 0) await _flushLibrary();
   }
 
   /// What a migration needs to backfill: who we are, and when the file it is

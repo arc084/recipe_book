@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:crypto/crypto.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recipe_book/data/database.dart';
@@ -7,6 +10,31 @@ import 'package:recipe_book/data/settings.dart';
 import 'package:recipe_book/sync/protocol.dart';
 import 'package:recipe_book/sync/sync_client.dart';
 import 'package:recipe_book/sync/sync_server.dart';
+
+/// Registers [joiner] with [host] under a shared key and returns the peer
+/// record the client signs with. Shortcut past the six-digit handshake, which
+/// has its own tests.
+PairedDevice _pairedPair(_FakeHost host, String joiner) {
+  const key = 'a-key-both-sides-agreed';
+  host.pairedDevices.add(
+    PairedDevice(
+      id: joiner,
+      name: joiner,
+      platform: 'test',
+      recipeCount: 0,
+      pantryCount: 0,
+      psk: key,
+    ),
+  );
+  return PairedDevice(
+    id: host.deviceId,
+    name: host.deviceName,
+    platform: 'test',
+    recipeCount: 0,
+    pantryCount: 0,
+    psk: key,
+  );
+}
 
 /// A host backed by plain databases, so the transport can be exercised
 /// without an AppState behind it.
@@ -35,8 +63,20 @@ class _FakeHost implements SyncHost {
   final List<String> from = [];
   final Map<String, List<int>> photos = {};
 
+  /// What this host references but does not hold, for the peer to push.
+  final List<String> wants = [];
+
   @override
   Future<void> onPaired(PairedDevice device) async => pairedDevices.add(device);
+
+  @override
+  Future<List<String>> missingPhotoHashes() async => wants;
+
+  @override
+  Future<void> storePhoto(String hash, List<int> bytes) async {
+    photos[hash] = bytes;
+    wants.remove(hash);
+  }
 
   @override
   Future<void> onIncoming(
@@ -385,6 +425,72 @@ void main() {
     test('a hash the peer does not have comes back null', () async {
       final peer = await pair();
       expect(await client.photo(base, peer: peer, hash: 'nope'), isNull);
+    });
+  });
+
+  group('photographs travel both ways', () {
+    test('a peer pushes the photos the host says it is missing', () async {
+      // The bug: only the initiator ever fetched, so a picture taken on the
+      // phone never reached the laptop. The host cannot dial the initiator, so
+      // it names what it wants and the initiator pushes.
+      final bytes = utf8.encode('pretend jpeg bytes');
+      final hash = sha256.convert(bytes).toString();
+
+      final host = _FakeHost('host')..wants.add(hash);
+      final server = SyncServer(host);
+      final port = await server.start(address: InternetAddress.loopbackIPv4);
+      final base = Uri.parse('http://127.0.0.1:$port');
+
+      final peer = _pairedPair(host, 'joiner');
+      final client = SyncClient(
+        deviceId: 'joiner',
+        deviceName: 'Joiner',
+        platform: 'test',
+      );
+
+      final exchange = await client.exchange(
+        base,
+        peer: peer,
+        library: LibraryDatabase(),
+        pantry: PantryDatabase(),
+        policy: ConflictPolicy.newestWins,
+      );
+      expect(exchange.wantedPhotos, [hash], reason: 'host should ask for it');
+
+      await client.pushPhoto(base, peer: peer, hash: hash, bytes: bytes);
+      expect(host.photos[hash], bytes);
+      expect(host.wants, isEmpty);
+
+      client.close();
+      await server.stop();
+    });
+
+    test('a photo whose bytes do not match its hash is refused', () async {
+      // The hash is the identity. Without checking it, a peer could overwrite
+      // any photo with any content just by naming it.
+      final host = _FakeHost('host');
+      final server = SyncServer(host);
+      final port = await server.start(address: InternetAddress.loopbackIPv4);
+      final base = Uri.parse('http://127.0.0.1:$port');
+
+      final peer = _pairedPair(host, 'joiner');
+      final client = SyncClient(
+        deviceId: 'joiner',
+        deviceName: 'Joiner',
+        platform: 'test',
+      );
+
+      await client.pushPhoto(
+        base,
+        peer: peer,
+        hash: sha256.convert(utf8.encode('the real photo')).toString(),
+        bytes: utf8.encode('something else entirely'),
+      );
+
+      expect(host.photos, isEmpty);
+
+      client.close();
+      await server.stop();
     });
   });
 }

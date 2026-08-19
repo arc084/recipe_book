@@ -10,12 +10,36 @@ import 'models.dart';
 abstract final class Seed {
   static ({LibraryDatabase library, PantryDatabase pantry}) build() {
     // ── Meal types ────────────────────────────────────────────────────────
-    final breakfast = MealType(id: newId(), name: 'Breakfast', order: 0);
-    final lunch = MealType(id: newId(), name: 'Lunch', order: 1);
-    final dinner = MealType(id: newId(), name: 'Dinner', order: 2);
-    final snacks = MealType(id: newId(), name: 'Snacks', order: 3);
-    final sides = MealType(id: newId(), name: 'Sides', order: 4);
-    final dessert = MealType(id: newId(), name: 'Dessert', order: 5);
+    final breakfast = MealType(
+      id: seedId('mealType', 'Breakfast'),
+      name: 'Breakfast',
+      order: 0,
+    );
+    final lunch = MealType(
+      id: seedId('mealType', 'Lunch'),
+      name: 'Lunch',
+      order: 1,
+    );
+    final dinner = MealType(
+      id: seedId('mealType', 'Dinner'),
+      name: 'Dinner',
+      order: 2,
+    );
+    final snacks = MealType(
+      id: seedId('mealType', 'Snacks'),
+      name: 'Snacks',
+      order: 3,
+    );
+    final sides = MealType(
+      id: seedId('mealType', 'Sides'),
+      name: 'Sides',
+      order: 4,
+    );
+    final dessert = MealType(
+      id: seedId('mealType', 'Dessert'),
+      name: 'Dessert',
+      order: 5,
+    );
     final mealTypes = [breakfast, lunch, dinner, snacks, sides, dessert];
 
     // ── Pantry ────────────────────────────────────────────────────────────
@@ -39,7 +63,7 @@ abstract final class Seed {
       double? sugar,
       bool estimated = false,
     }) => PantryItem(
-      id: newId(),
+      id: seedId('pantryItem', name),
       name: name,
       group: group,
       aliases: [...aliases],
@@ -524,7 +548,7 @@ abstract final class Seed {
       parts,
     }) {
       final r = Recipe(
-        id: newId(),
+        id: seedId('recipe', title),
         title: title,
         mealTypeId: type.id,
         tags: tags,
@@ -539,7 +563,7 @@ abstract final class Seed {
       var stepOrder = 0;
       for (final (name, lines, steps) in parts) {
         final c = RecipeComponent(
-          id: newId(),
+          id: seedId('component', '$title|$name'),
           recipeId: r.id,
           name: name,
           order: componentOrder++,
@@ -548,7 +572,10 @@ abstract final class Seed {
         for (final (qty, unit, ingName, link) in lines) {
           r.ingredients.add(
             Ingredient(
-              id: newId(),
+              id: seedId(
+                'ingredient',
+                '$title|$name|$ingName|$ingredientOrder',
+              ),
               componentId: c.id,
               quantity: qty,
               unit: unit,
@@ -561,7 +588,7 @@ abstract final class Seed {
         for (final text in steps) {
           r.steps.add(
             RecipeStep(
-              id: newId(),
+              id: seedId('step', '$title|$name|$stepOrder'),
               componentId: c.id,
               text: text,
               order: stepOrder++,
@@ -840,50 +867,62 @@ abstract final class Seed {
     ];
 
     // ── Aisles and groceries ──────────────────────────────────────────────
-    final produce = Aisle(id: newId(), name: 'Produce', order: 0);
-    final bakery = Aisle(id: newId(), name: 'Bakery', order: 1);
-    final dairy = Aisle(id: newId(), name: 'Dairy', order: 2);
-    final tinned = Aisle(id: newId(), name: 'Tinned & dry', order: 3);
+    final produce = Aisle(
+      id: seedId('aisle', 'Produce'),
+      name: 'Produce',
+      order: 0,
+    );
+    final bakery = Aisle(
+      id: seedId('aisle', 'Bakery'),
+      name: 'Bakery',
+      order: 1,
+    );
+    final dairy = Aisle(id: seedId('aisle', 'Dairy'), name: 'Dairy', order: 2);
+    final tinned = Aisle(
+      id: seedId('aisle', 'Tinned & dry'),
+      name: 'Tinned & dry',
+      order: 3,
+    );
     final aisles = [produce, bakery, dairy, tinned];
 
     final groceries = <GroceryItem>[
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Panko breadcrumbs'),
         name: 'Panko breadcrumbs',
         aisleId: bakery.id,
         quantity: '100 g',
         sources: ['Chicken Parmesan'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Lemons'),
         name: 'Lemons',
         aisleId: produce.id,
         quantity: '2',
         sources: ['Added by hand'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Double cream'),
         name: 'Double cream',
         aisleId: dairy.id,
         quantity: '300 ml',
         sources: ['Chicken Marsala'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Chestnut mushrooms'),
         name: 'Chestnut mushrooms',
         aisleId: produce.id,
         quantity: '250 g',
         sources: ['Chicken Marsala'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Flat-leaf parsley'),
         name: 'Flat-leaf parsley',
         aisleId: produce.id,
         quantity: '1 bunch',
         sources: ['Added by hand'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Coconut milk'),
         name: 'Coconut milk',
         aisleId: tinned.id,
         quantity: '400 ml',
@@ -891,21 +930,21 @@ abstract final class Seed {
         pantryItemId: coconutMilk.id,
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Nori sheets'),
         name: 'Nori sheets',
         aisleId: tinned.id,
         quantity: '1 pack',
         sources: ['Tuna Poke Bowl'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Spring onions'),
         name: 'Spring onions',
         aisleId: produce.id,
         quantity: '1 bunch',
         sources: ['Tuna Poke Bowl'],
       ),
       GroceryItem(
-        id: newId(),
+        id: seedId('grocery', 'Olive oil'),
         name: 'Olive oil',
         aisleId: tinned.id,
         quantity: '500 ml',
@@ -923,7 +962,7 @@ abstract final class Seed {
       today.day,
     ).subtract(Duration(days: today.weekday - 1));
     PlanEntry entry(int dayOffset, MealSlot slot, Recipe r) => PlanEntry(
-      id: newId(),
+      id: seedId('planEntry', '$dayOffset|${slot.name}'),
       date: monday.add(Duration(days: dayOffset)),
       slot: slot,
       recipeId: r.id,
