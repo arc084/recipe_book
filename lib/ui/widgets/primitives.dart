@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/tokens.dart';
 
@@ -372,6 +373,7 @@ class AppTextField extends StatelessWidget {
     this.filled = true,
     this.keyboardType,
     this.textAlign = TextAlign.start,
+    this.inputFormatters,
   });
 
   final TextEditingController? controller;
@@ -387,6 +389,10 @@ class AppTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextAlign textAlign;
 
+  /// Constrains what can be typed — the pairing code takes six digits and
+  /// nothing else.
+  final List<TextInputFormatter>? inputFormatters;
+
   @override
   Widget build(BuildContext context) {
     final t = context.tokens;
@@ -399,6 +405,7 @@ class AppTextField extends StatelessWidget {
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
         textAlign: textAlign,
         cursorColor: t.accent,
         cursorWidth: 1.5,

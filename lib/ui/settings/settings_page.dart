@@ -7,6 +7,7 @@ import '../../data/settings.dart';
 import '../../state/app_state.dart';
 import '../../theme/tokens.dart';
 import '../widgets/primitives.dart';
+import 'pairing_sheet.dart';
 
 /// There is no onboarding — pairing and permissions live here from the first
 /// run.
@@ -124,13 +125,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 AppButton(
-                  // Pairing is typed, not scanned. The device being added to
-                  // shows the digits; the one joining enters them.
-                  widget.isPhone ? 'Enter a code' : 'Pair a device',
+                  // Pairing is typed, not scanned — no camera permission for a
+                  // one-off setup. Which device shows the digits and which
+                  // types them is the user's choice on both platforms.
+                  'Pair a device',
                   kind: ButtonKind.primary,
-                  onPressed: () => widget.isPhone
-                      ? _enterPairingCode(context)
-                      : _showPairingCode(context, app),
+                  onPressed: () => PairingSheet.open(context),
                 ),
               ],
             ),
@@ -175,6 +175,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                   ),
+                  AppButton(
+                    'Sync now',
+                    kind: ButtonKind.primary,
+                    fontSize: 11.5,
+                    onPressed: () => runSyncSession(context, device),
+                  ),
+                  const SizedBox(width: 7),
                   // Unpairing is per device and never deletes anything.
                   AppButton(
                     'Unpair',
@@ -223,141 +230,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showPairingCode(BuildContext context, AppState app) {
-    final code = app.newPairingCode();
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        final t = context.tokens;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: 420,
-            padding: EdgeInsets.all(t.space(6)),
-            decoration: BoxDecoration(
-              color: t.surface,
-              borderRadius: t.brLarge,
-              boxShadow: t.shadowLg,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Enter this on the other device',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                SizedBox(height: t.space(2)),
-                Text(
-                  'It is typed, not scanned — no camera permission for a '
-                  'one-off setup. The code expires.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: t.bodyFamily,
-                    fontSize: 12,
-                    height: 1.5,
-                    color: t.textMuted,
-                  ),
-                ),
-                SizedBox(height: t.space(6)),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (final digit in code.split(''))
-                      Container(
-                        width: 46,
-                        height: 58,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: t.ground,
-                          borderRadius: t.brContainer,
-                          border: Border.fromBorderSide(
-                            BorderSide(color: t.accent),
-                          ),
-                        ),
-                        child: Text(
-                          digit,
-                          style: TextStyle(
-                            fontFamily: t.bodyFamily,
-                            fontSize: 28,
-                            color: t.text,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                SizedBox(height: t.space(6)),
-                AppButton(
-                  'Done',
-                  kind: ButtonKind.primary,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   /// The joining device's half of pairing: six digits, typed.
-  void _enterPairingCode(BuildContext context) {
-    final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        final t = context.tokens;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.all(t.space(6)),
-            decoration: BoxDecoration(
-              color: t.surface,
-              borderRadius: t.brLarge,
-              boxShadow: t.shadowLg,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Enter the code',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                SizedBox(height: t.space(2)),
-                Text(
-                  'Six digits, shown on the device you are pairing with. No '
-                  'camera needed for a one-off setup.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: t.bodyFamily,
-                    fontSize: 12,
-                    height: 1.5,
-                    color: t.textMuted,
-                  ),
-                ),
-                SizedBox(height: t.space(4)),
-                AppTextField(
-                  controller: controller,
-                  hint: '000000',
-                  height: 52,
-                  fontSize: 24,
-                  autofocus: true,
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                ),
-                SizedBox(height: t.space(4)),
-                AppButton(
-                  'Pair',
-                  kind: ButtonKind.primary,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   // ── Databases ───────────────────────────────────────────────────────────
 

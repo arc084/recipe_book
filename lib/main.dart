@@ -7,6 +7,7 @@ import 'package:window_manager/window_manager.dart';
 import 'state/app_state.dart';
 import 'state/nav.dart';
 import 'state/share_intake.dart';
+import 'sync/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'ui/cook/cook_mode.dart';
 import 'ui/import/import_flow.dart';
@@ -118,6 +119,9 @@ class _RecipeBookAppState extends State<RecipeBookApp>
       providers: [
         ChangeNotifierProvider.value(value: widget.state),
         ChangeNotifierProvider(create: (_) => NavController()),
+        // Owns the sockets. It only listens while a sync screen is open — the
+        // app is offline by design.
+        ChangeNotifierProvider(create: (_) => SyncService(widget.state)),
       ],
       child: Consumer<AppState>(
         builder: (context, app, _) => MaterialApp(
