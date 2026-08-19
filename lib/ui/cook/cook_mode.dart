@@ -154,8 +154,8 @@ class _PantryCheckDialog extends StatelessWidget {
                           quantity: m.ingredient.quantity == null
                               ? m.ingredient.unit
                               : '${formatAmount(m.ingredient.quantity)} '
-                                      '${m.ingredient.unit}'
-                                  .trim(),
+                                        '${m.ingredient.unit}'
+                                    .trim(),
                           source: recipe.title,
                         );
                       },
@@ -194,8 +194,8 @@ class _PantryCheckDialog extends StatelessWidget {
     for (var i = 0; i < steps.length; i++) {
       if (steps[i].componentId != line.componentId) continue;
       if (steps[i].text.toLowerCase().contains(
-            line.name.split(',').first.toLowerCase(),
-          )) {
+        line.name.split(',').first.toLowerCase(),
+      )) {
         stepNumbers.add(i + 1);
       }
     }
@@ -295,11 +295,13 @@ class _CookModeScreenState extends State<CookModeScreen> {
   void _startTimer(RecipeStep step, Recipe recipe) {
     final minutes = step.timerMinutes ?? _guessMinutes(step.text) ?? 5;
     setState(() {
-      _timers.add(_CookTimer(
-        stepNumber: recipe.orderedSteps.indexOf(step) + 1,
-        endsAt: DateTime.now().add(Duration(minutes: minutes)),
-        minutes: minutes,
-      ));
+      _timers.add(
+        _CookTimer(
+          stepNumber: recipe.orderedSteps.indexOf(step) + 1,
+          endsAt: DateTime.now().add(Duration(minutes: minutes)),
+          minutes: minutes,
+        ),
+      );
     });
   }
 
@@ -309,9 +311,19 @@ class _CookModeScreenState extends State<CookModeScreen> {
     final digits = RegExp(r'(\d+)\s*(?:minute|min)').firstMatch(text);
     if (digits != null) return int.tryParse(digits.group(1)!);
     const words = {
-      'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-      'fifteen': 15, 'twenty': 20, 'thirty': 30,
+      'one': 1,
+      'two': 2,
+      'three': 3,
+      'four': 4,
+      'five': 5,
+      'six': 6,
+      'seven': 7,
+      'eight': 8,
+      'nine': 9,
+      'ten': 10,
+      'fifteen': 15,
+      'twenty': 20,
+      'thirty': 30,
     };
     for (final entry in words.entries) {
       if (RegExp('${entry.key}\\s*(?:minute|min)').hasMatch(text)) {
@@ -489,8 +501,8 @@ class _CookModeScreenState extends State<CookModeScreen> {
                     color: current
                         ? t.text
                         : done
-                            ? t.textFaint
-                            : t.textSecondary,
+                        ? t.textFaint
+                        : t.textSecondary,
                   ),
                 ),
               ),
@@ -677,7 +689,7 @@ class _CookModeScreenState extends State<CookModeScreen> {
                               line.quantity == null
                                   ? line.unit
                                   : '${formatAmount(line.quantity)} ${line.unit}'
-                                      .trim(),
+                                        .trim(),
                               style: TextStyle(
                                 fontFamily: t.bodyFamily,
                                 fontSize: 17,
@@ -720,8 +732,9 @@ class _CookModeScreenState extends State<CookModeScreen> {
                 icon: Icons.arrow_back,
                 fontSize: 15,
                 height: 48,
-                onPressed:
-                    _step > 0 ? () => _run(CookCommand.back, heard: '←') : null,
+                onPressed: _step > 0
+                    ? () => _run(CookCommand.back, heard: '←')
+                    : null,
               ),
               const SizedBox(width: 12),
               AppButton(

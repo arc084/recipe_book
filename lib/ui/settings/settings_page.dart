@@ -49,8 +49,12 @@ class _SettingsPageState extends State<SettingsPage> {
     final app = context.watch<AppState>();
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(widget.isPhone ? 16 : 24, 20,
-          widget.isPhone ? 16 : 24, 30),
+      padding: EdgeInsets.fromLTRB(
+        widget.isPhone ? 16 : 24,
+        20,
+        widget.isPhone ? 16 : 24,
+        30,
+      ),
       children: [
         if (!widget.isPhone) ...[
           Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
@@ -83,7 +87,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final t = context.tokens;
     return _Section(
       title: 'Sync',
-      subtitle: 'Direct between devices on your local network — no account, '
+      subtitle:
+          'Direct between devices on your local network — no account, '
           'no server.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -361,23 +366,22 @@ class _SettingsPageState extends State<SettingsPage> {
       title: 'Databases',
       subtitle: widget.isPhone
           ? 'Listed here for their sizes. Backup, import and export stay on '
-              'the desktop, where the files are kept.'
+                'the desktop, where the files are kept.'
           : 'Two of them, listed separately. Each has its own back up, '
-              'import and export, so a library can be replaced without '
-              'touching the pantry.',
+                'import and export, so a library can be replaced without '
+                'touching the pantry.',
       child: Column(
         children: [
           _databaseRow(
             context,
             name: 'library',
-            detail: '${app.library.recipes.length} recipes · '
+            detail:
+                '${app.library.recipes.length} recipes · '
                 '${app.library.groceries.length} grocery items · '
                 '${app.library.plan.length} planned meals',
             bytes: _librarySize,
             onExport: () async {
-              final path = await getSaveLocation(
-                suggestedName: 'library.json',
-              );
+              final path = await getSaveLocation(suggestedName: 'library.json');
               if (path == null) return;
               await app.exportLibrary(path.path);
               await _refreshSizes();
@@ -385,7 +389,10 @@ class _SettingsPageState extends State<SettingsPage> {
             onImport: () async {
               final file = await openFile(
                 acceptedTypeGroups: const [
-                  XTypeGroup(label: 'Recipe Book library', extensions: ['json']),
+                  XTypeGroup(
+                    label: 'Recipe Book library',
+                    extensions: ['json'],
+                  ),
                 ],
               );
               if (file == null) return;
@@ -393,22 +400,25 @@ class _SettingsPageState extends State<SettingsPage> {
               if (!context.mounted) return;
               await _refreshSizes();
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(
-                  'Library replaced. $linked ingredient '
-                  '${linked == 1 ? 'name' : 'names'} matched your pantry on '
-                  'the way in.',
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Library replaced. $linked ingredient '
+                    '${linked == 1 ? 'name' : 'names'} matched your pantry on '
+                    'the way in.',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  width: 440,
                 ),
-                behavior: SnackBarBehavior.floating,
-                width: 440,
-              ));
+              );
             },
           ),
           const SizedBox(height: 8),
           _databaseRow(
             context,
             name: 'pantry',
-            detail: '${app.pantry.items.length} ingredients · '
+            detail:
+                '${app.pantry.items.length} ingredients · '
                 '${app.itemsNeedingMacros.length} without macros',
             bytes: _pantrySize,
             onExport: () async {
@@ -600,11 +610,7 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.child,
-    this.subtitle,
-  });
+  const _Section({required this.title, required this.child, this.subtitle});
 
   final String title;
   final String? subtitle;

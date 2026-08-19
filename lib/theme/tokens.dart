@@ -251,11 +251,7 @@ class AppTokens extends ThemeExtension<AppTokens> {
     ],
     shadowMd: [
       BoxShadow(color: Color(0xFF595D6C), spreadRadius: 1, blurRadius: 0),
-      BoxShadow(
-        color: Color(0x8C000000),
-        blurRadius: 18,
-        offset: Offset(0, 6),
-      ),
+      BoxShadow(color: Color(0x8C000000), blurRadius: 18, offset: Offset(0, 6)),
     ],
     shadowLg: [
       BoxShadow(color: Color(0xFF9397AB), spreadRadius: 1, blurRadius: 0),
@@ -330,18 +326,10 @@ class AppTokens extends ThemeExtension<AppTokens> {
     density: 1.10,
     // Soft ink-tinted shadows, derived from the ground.
     shadowSm: [
-      BoxShadow(
-        color: Color(0x242E2B25),
-        blurRadius: 2,
-        offset: Offset(0, 1),
-      ),
+      BoxShadow(color: Color(0x242E2B25), blurRadius: 2, offset: Offset(0, 1)),
     ],
     shadowMd: [
-      BoxShadow(
-        color: Color(0x292E2B25),
-        blurRadius: 10,
-        offset: Offset(0, 3),
-      ),
+      BoxShadow(color: Color(0x292E2B25), blurRadius: 10, offset: Offset(0, 3)),
     ],
     shadowLg: [
       BoxShadow(
@@ -451,8 +439,8 @@ class AppTokens extends ThemeExtension<AppTokens> {
   AppTokens lerp(ThemeExtension<AppTokens>? other, double t) {
     if (other is! AppTokens) return this;
     List<Color> lerpRamp(List<Color> a, List<Color> b) => <Color>[
-          for (var i = 0; i < a.length; i++) Color.lerp(a[i], b[i], t)!,
-        ];
+      for (var i = 0; i < a.length; i++) Color.lerp(a[i], b[i], t)!,
+    ];
     // The two themes' shadow stacks have different lengths, so snap rather
     // than interpolate — a half-blended elevation reads as neither.
     List<BoxShadow> snapShadow(List<BoxShadow> a, List<BoxShadow> b) =>
@@ -495,8 +483,9 @@ class AppTokens extends ThemeExtension<AppTokens> {
       headingFamily: t < 0.5 ? headingFamily : other.headingFamily,
       headingWeight: lerpDouble(headingWeight, other.headingWeight, t),
       bodyFamily: t < 0.5 ? bodyFamily : other.bodyFamily,
-      primaryButtonIsFilled:
-          t < 0.5 ? primaryButtonIsFilled : other.primaryButtonIsFilled,
+      primaryButtonIsFilled: t < 0.5
+          ? primaryButtonIsFilled
+          : other.primaryButtonIsFilled,
       photoTreatment: t < 0.5 ? photoTreatment : other.photoTreatment,
       cookModeGlow: t < 0.5 ? cookModeGlow : other.cookModeGlow,
     );

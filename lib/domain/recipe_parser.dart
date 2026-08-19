@@ -56,7 +56,8 @@ class ParsedIngredient {
 abstract final class RecipeParser {
   static ParsedRecipe? parse(String source, {String? url}) {
     final document = html.parse(source);
-    final parsed = _fromJsonLd(document) ??
+    final parsed =
+        _fromJsonLd(document) ??
         _fromMicrodata(document) ??
         _fromMarkup(document);
     if (parsed == null) return null;
@@ -67,8 +68,9 @@ abstract final class RecipeParser {
   // ── schema.org JSON-LD ──────────────────────────────────────────────────
 
   static ParsedRecipe? _fromJsonLd(dom.Document document) {
-    for (final script
-        in document.querySelectorAll('script[type="application/ld+json"]')) {
+    for (final script in document.querySelectorAll(
+      'script[type="application/ld+json"]',
+    )) {
       try {
         final decoded = jsonDecode(script.text);
         final recipe = _findRecipeNode(decoded);
@@ -112,7 +114,8 @@ abstract final class RecipeParser {
       title: '${map['name'] ?? 'Untitled recipe'}'.trim(),
       ingredients: ingredients,
       steps: _instructions(map['recipeInstructions']),
-      totalMinutes: _duration(map['totalTime']) ??
+      totalMinutes:
+          _duration(map['totalTime']) ??
           ((_duration(map['cookTime']) ?? 0) +
                   (_duration(map['prepTime']) ?? 0))
               .let((v) => v == 0 ? null : v),
@@ -213,14 +216,17 @@ abstract final class RecipeParser {
     if (scope == null) return null;
 
     final lines = scope
-        .querySelectorAll('[itemprop="recipeIngredient"], [itemprop="ingredients"]')
+        .querySelectorAll(
+          '[itemprop="recipeIngredient"], [itemprop="ingredients"]',
+        )
         .map((e) => e.text.trim())
         .where((s) => s.isNotEmpty)
         .toList();
     if (lines.isEmpty) return null;
 
     return _assemble(
-      title: scope.querySelector('[itemprop="name"]')?.text.trim() ??
+      title:
+          scope.querySelector('[itemprop="name"]')?.text.trim() ??
           document.querySelector('title')?.text.trim() ??
           'Untitled recipe',
       ingredientLines: lines,
@@ -252,7 +258,8 @@ abstract final class RecipeParser {
         .toList();
 
     return _assemble(
-      title: document.querySelector('h1')?.text.trim() ??
+      title:
+          document.querySelector('h1')?.text.trim() ??
           document.querySelector('title')?.text.trim() ??
           'Untitled recipe',
       ingredientLines: lines,
@@ -282,19 +289,78 @@ abstract final class RecipeParser {
   // ── Ingredient lines ────────────────────────────────────────────────────
 
   static const _fractions = <String, double>{
-    '½': 0.5, '⅓': 1 / 3, '⅔': 2 / 3, '¼': 0.25, '¾': 0.75,
-    '⅕': 0.2, '⅖': 0.4, '⅗': 0.6, '⅘': 0.8, '⅙': 1 / 6, '⅚': 5 / 6,
-    '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875,
+    '½': 0.5,
+    '⅓': 1 / 3,
+    '⅔': 2 / 3,
+    '¼': 0.25,
+    '¾': 0.75,
+    '⅕': 0.2,
+    '⅖': 0.4,
+    '⅗': 0.6,
+    '⅘': 0.8,
+    '⅙': 1 / 6,
+    '⅚': 5 / 6,
+    '⅛': 0.125,
+    '⅜': 0.375,
+    '⅝': 0.625,
+    '⅞': 0.875,
   };
 
   static const _knownUnits = <String>{
-    'g', 'gram', 'grams', 'kg', 'mg', 'oz', 'ounce', 'ounces', 'lb', 'lbs',
-    'pound', 'pounds', 'ml', 'l', 'litre', 'litres', 'liter', 'liters',
-    'tsp', 'teaspoon', 'teaspoons', 'tbsp', 'tablespoon', 'tablespoons',
-    'cup', 'cups', 'pinch', 'handful', 'clove', 'cloves', 'can', 'cans',
-    'tin', 'tins', 'slice', 'slices', 'ball', 'balls', 'sprig', 'sprigs',
-    'stick', 'sticks', 'fillet', 'fillets', 'bunch', 'bunches', 'pack',
-    'packs', 'jar', 'jars', 'head', 'heads', 'piece', 'pieces',
+    'g',
+    'gram',
+    'grams',
+    'kg',
+    'mg',
+    'oz',
+    'ounce',
+    'ounces',
+    'lb',
+    'lbs',
+    'pound',
+    'pounds',
+    'ml',
+    'l',
+    'litre',
+    'litres',
+    'liter',
+    'liters',
+    'tsp',
+    'teaspoon',
+    'teaspoons',
+    'tbsp',
+    'tablespoon',
+    'tablespoons',
+    'cup',
+    'cups',
+    'pinch',
+    'handful',
+    'clove',
+    'cloves',
+    'can',
+    'cans',
+    'tin',
+    'tins',
+    'slice',
+    'slices',
+    'ball',
+    'balls',
+    'sprig',
+    'sprigs',
+    'stick',
+    'sticks',
+    'fillet',
+    'fillets',
+    'bunch',
+    'bunches',
+    'pack',
+    'packs',
+    'jar',
+    'jars',
+    'head',
+    'heads',
+    'piece',
+    'pieces',
   };
 
   /// Splits "400 g canned tomatoes" into its three fields.
@@ -376,9 +442,10 @@ abstract final class RecipeParser {
     // No quantity at all, and the text does not read like a "to taste" line.
     if (line.quantity == null &&
         line.unit.isEmpty &&
-        !RegExp(r'to taste|as needed|for serving|garnish',
-                caseSensitive: false)
-            .hasMatch(line.raw)) {
+        !RegExp(
+          r'to taste|as needed|for serving|garnish',
+          caseSensitive: false,
+        ).hasMatch(line.raw)) {
       return true;
     }
     // Suspiciously long — probably a sentence that was not an ingredient.

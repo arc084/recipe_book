@@ -81,9 +81,7 @@ class _RecipeCardState extends State<RecipeCard> {
                         Positioned(
                           left: 9,
                           bottom: 9,
-                          child: IgnorePointer(
-                            child: Tag(mealType.name),
-                          ),
+                          child: IgnorePointer(child: Tag(mealType.name)),
                         ),
                     ],
                   ),
@@ -166,7 +164,6 @@ class _RecipeCardState extends State<RecipeCard> {
       ),
     );
   }
-
 }
 
 class _Figure extends StatelessWidget {

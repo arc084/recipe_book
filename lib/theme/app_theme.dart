@@ -55,14 +55,14 @@ abstract final class AppTheme {
     );
 
     TextStyle heading(double size, {double? height}) => TextStyle(
-          fontFamily: t.headingFamily,
-          color: t.text,
-          fontSize: size,
-          height: height ?? 1.15,
-          letterSpacing: -0.015 * size,
-          fontVariations: _wght(t.headingWeight),
-          fontWeight: _nearestWeight(t.headingWeight),
-        );
+      fontFamily: t.headingFamily,
+      color: t.text,
+      fontSize: size,
+      height: height ?? 1.15,
+      letterSpacing: -0.015 * size,
+      fontVariations: _wght(t.headingWeight),
+      fontWeight: _nearestWeight(t.headingWeight),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -75,11 +75,7 @@ abstract final class AppTheme {
       splashFactory: NoSplash.splashFactory,
       visualDensity: VisualDensity.standard,
       extensions: <ThemeExtension<dynamic>>[t],
-      dividerTheme: DividerThemeData(
-        color: t.divider,
-        thickness: 1,
-        space: 1,
-      ),
+      dividerTheme: DividerThemeData(color: t.divider, thickness: 1, space: 1),
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: t.accent,
         selectionColor: t.accent.withValues(alpha: 0.30),
@@ -131,8 +127,9 @@ abstract final class AppTheme {
   ///
   /// All three bundled faces — Inter, Figtree and Baloo 2 — are variable, so a
   /// weight is a `wght` axis value rather than a separate font file.
-  static List<FontVariation> _wght(double weight) =>
-      <FontVariation>[FontVariation('wght', weight)];
+  static List<FontVariation> _wght(double weight) => <FontVariation>[
+    FontVariation('wght', weight),
+  ];
 
   /// The nearest [FontWeight] to the axis value, set alongside the variation
   /// so text still lands close if a face ever falls back to a static instance.

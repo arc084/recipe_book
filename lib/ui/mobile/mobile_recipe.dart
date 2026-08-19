@@ -89,8 +89,11 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
                       radius: 19,
                       backgroundColor: t.ground.withValues(alpha: 0.68),
                       child: IconButton(
-                        icon: Icon(Icons.arrow_back,
-                            size: 19, color: t.textStrong),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          size: 19,
+                          color: t.textStrong,
+                        ),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
@@ -113,8 +116,10 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
                   runSpacing: 6,
                   children: [
                     for (var i = 0; i < recipe.tags.length; i++)
-                      Tag(recipe.tags[i],
-                          style: i == 0 ? TagStyle.accent : TagStyle.outline),
+                      Tag(
+                        recipe.tags[i],
+                        style: i == 0 ? TagStyle.accent : TagStyle.outline,
+                      ),
                     if (app.mealType(recipe.mealTypeId) != null)
                       Tag(app.mealType(recipe.mealTypeId)!.name),
                   ],
@@ -235,8 +240,11 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
                           width: double.infinity,
                           color: t.accent.withValues(alpha: 0.08),
                           padding: const EdgeInsets.fromLTRB(14, 8, 14, 7),
-                          child: SectionLabel(c.name,
-                              color: t.accentText, size: 10),
+                          child: SectionLabel(
+                            c.name,
+                            color: t.accentText,
+                            size: 10,
+                          ),
                         ),
                         for (final line in recipe.ingredientsOf(c.id))
                           _row(
@@ -366,9 +374,7 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: t.divider)),
-        color: cov.countsAsMissing
-            ? t.accent.withValues(alpha: 0.09)
-            : null,
+        color: cov.countsAsMissing ? t.accent.withValues(alpha: 0.09) : null,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: SizedBox(
@@ -547,12 +553,14 @@ class _MobileHandEntryPageState extends State<MobileHandEntryPage> {
                     onSubmitted: (v) {
                       if (v.trim().isEmpty) return;
                       setState(() {
-                        _draft.steps.add(RecipeStep(
-                          id: newId(),
-                          componentId: _componentId,
-                          text: v.trim(),
-                          order: _draft.steps.length,
-                        ));
+                        _draft.steps.add(
+                          RecipeStep(
+                            id: newId(),
+                            componentId: _componentId,
+                            text: v.trim(),
+                            order: _draft.steps.length,
+                          ),
+                        );
                         _step.clear();
                       });
                     },
@@ -597,8 +605,9 @@ class _MobileHandEntryPageState extends State<MobileHandEntryPage> {
       }
     }
 
-    final match =
-        app.pantry.items.where((p) => p.matchesName(name)).firstOrNull;
+    final match = app.pantry.items
+        .where((p) => p.matchesName(name))
+        .firstOrNull;
 
     return Ingredient(
       id: newId(),
@@ -616,10 +625,7 @@ class _MobileHandEntryPageState extends State<MobileHandEntryPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
-      decoration: BoxDecoration(
-        color: t.surface,
-        borderRadius: t.brContainer,
-      ),
+      decoration: BoxDecoration(color: t.surface, borderRadius: t.brContainer),
       child: Row(
         children: [
           Expanded(

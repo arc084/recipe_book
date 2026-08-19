@@ -104,13 +104,12 @@ class _MobileGroceriesPageState extends State<MobileGroceriesPage> {
 
   Widget _aisle(BuildContext context, AppState app, Aisle aisle) {
     final t = context.tokens;
-    final items = app.library.groceries
-        .where((g) => g.aisleId == aisle.id)
-        .toList()
-      ..sort((a, b) {
-        if (a.checked != b.checked) return a.checked ? 1 : -1;
-        return 0;
-      });
+    final items =
+        app.library.groceries.where((g) => g.aisleId == aisle.id).toList()
+          ..sort((a, b) {
+            if (a.checked != b.checked) return a.checked ? 1 : -1;
+            return 0;
+          });
     if (items.isEmpty) return const SizedBox.shrink();
 
     final open = items.where((i) => !i.checked).length;

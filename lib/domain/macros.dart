@@ -20,20 +20,20 @@ class Macros {
   static const zero = Macros();
 
   Macros operator +(Macros o) => Macros(
-        calories: calories + o.calories,
-        protein: protein + o.protein,
-        fat: fat + o.fat,
-        carbs: carbs + o.carbs,
-        sugar: sugar + o.sugar,
-      );
+    calories: calories + o.calories,
+    protein: protein + o.protein,
+    fat: fat + o.fat,
+    carbs: carbs + o.carbs,
+    sugar: sugar + o.sugar,
+  );
 
   Macros scaled(double f) => Macros(
-        calories: calories * f,
-        protein: protein * f,
-        fat: fat * f,
-        carbs: carbs * f,
-        sugar: sugar * f,
-      );
+    calories: calories * f,
+    protein: protein * f,
+    fat: fat * f,
+    carbs: carbs * f,
+    sugar: sugar * f,
+  );
 }
 
 /// Why a line contributed nothing.
@@ -85,8 +85,7 @@ class MacroTotals {
   final List<LineResult> lines;
   final int servings;
 
-  Macros get perServing =>
-      servings <= 0 ? macros : macros.scaled(1 / servings);
+  Macros get perServing => servings <= 0 ? macros : macros.scaled(1 / servings);
 
   /// Lines that could not be counted. These are flagged to the user rather
   /// than quietly treated as zero.
@@ -102,7 +101,7 @@ class MacroTotals {
 /// about a recipe.
 class MacroEngine {
   MacroEngine(Iterable<PantryItem> pantry)
-      : _byId = {for (final p in pantry) p.id: p};
+    : _byId = {for (final p in pantry) p.id: p};
 
   final Map<String, PantryItem> _byId;
 
@@ -120,11 +119,7 @@ class MacroEngine {
   }
 
   /// Totals for one component, scaled the same way.
-  MacroTotals forComponent(
-    Recipe recipe,
-    String componentId, {
-    int? servings,
-  }) {
+  MacroTotals forComponent(Recipe recipe, String componentId, {int? servings}) {
     final target = servings ?? recipe.servings;
     final factor = recipe.servings <= 0 ? 1.0 : target / recipe.servings;
     return _sum(recipe.ingredientsOf(componentId), factor, target);
@@ -313,11 +308,11 @@ class PantryCoverage {
     required Iterable<PantryItem> pantry,
     required Iterable<GroceryItem> groceries,
     required this.assumeStaples,
-  })  : _pantry = pantry.toList(),
-        _groceryNames = {
-          for (final g in groceries)
-            if (!g.checked) g.name.trim().toLowerCase(),
-        };
+  }) : _pantry = pantry.toList(),
+       _groceryNames = {
+         for (final g in groceries)
+           if (!g.checked) g.name.trim().toLowerCase(),
+       };
 
   final List<PantryItem> _pantry;
   final Set<String> _groceryNames;
@@ -332,8 +327,8 @@ class PantryCoverage {
 
     // An unlinked line may still name something the user has under one of its
     // other known names.
-    final matched = linked ??
-        _pantry.where((p) => p.matchesName(line.name)).firstOrNull;
+    final matched =
+        linked ?? _pantry.where((p) => p.matchesName(line.name)).firstOrNull;
 
     if (matched != null) {
       // Stock is checked before the staple assumption on purpose. Assuming
@@ -368,8 +363,9 @@ class PantryCoverage {
     return CoverageResult(ingredient: line, coverage: Coverage.missing);
   }
 
-  List<CoverageResult> forRecipe(Recipe r) =>
-      [for (final i in r.ingredients) of(i)];
+  List<CoverageResult> forRecipe(Recipe r) => [
+    for (final i in r.ingredients) of(i),
+  ];
 
   /// "8 of 9 in pantry" — the numerator counts what the user has on hand, and
   /// [missing] is everything they do not, listed or otherwise.
@@ -378,7 +374,8 @@ class PantryCoverage {
     int total,
     List<CoverageResult> missing,
     List<CoverageResult> toBuy,
-  }) summarise(Recipe r) {
+  })
+  summarise(Recipe r) {
     final all = forRecipe(r);
     final missing = all.where((c) => c.countsAsMissing).toList();
     return (

@@ -55,8 +55,18 @@ class _EditMacrosDialogState extends State<EditMacrosDialog> {
   @override
   void dispose() {
     for (final c in [
-      _serving, _servingUnit, _alt, _altUnit, _pack, _packUnit, _brand,
-      _calories, _protein, _fat, _carbs, _sugar,
+      _serving,
+      _servingUnit,
+      _alt,
+      _altUnit,
+      _pack,
+      _packUnit,
+      _brand,
+      _calories,
+      _protein,
+      _fat,
+      _carbs,
+      _sugar,
     ]) {
       c.dispose();
     }
@@ -66,9 +76,9 @@ class _EditMacrosDialogState extends State<EditMacrosDialog> {
   int get _affectedRecipes {
     final app = context.read<AppState>();
     return app.library.recipes
-        .where((r) => r.ingredients.any(
-              (i) => i.pantryItemId == widget.item.id,
-            ))
+        .where(
+          (r) => r.ingredients.any((i) => i.pantryItemId == widget.item.id),
+        )
         .length;
   }
 
@@ -98,17 +108,19 @@ class _EditMacrosDialogState extends State<EditMacrosDialog> {
     final t = context.tokens;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text(
-          n == 0
-              ? 'Saved. No recipes use ${_draft.name} yet.'
-              : 'Saved. $n ${n == 1 ? 'recipe recalculates' : 'recipes recalculate'}.',
-          style: TextStyle(fontFamily: t.bodyFamily, fontSize: 12.5),
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            n == 0
+                ? 'Saved. No recipes use ${_draft.name} yet.'
+                : 'Saved. $n ${n == 1 ? 'recipe recalculates' : 'recipes recalculate'}.',
+            style: TextStyle(fontFamily: t.bodyFamily, fontSize: 12.5),
+          ),
+          backgroundColor: t.surface,
+          behavior: SnackBarBehavior.floating,
+          width: 380,
         ),
-        backgroundColor: t.surface,
-        behavior: SnackBarBehavior.floating,
-        width: 380,
-      ));
+      );
   }
 
   @override
@@ -248,9 +260,7 @@ class _EditMacrosDialogState extends State<EditMacrosDialog> {
                         child: _field(context, 'Protein g', _protein, width: 0),
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: _field(context, 'Fat g', _fat, width: 0),
-                      ),
+                      Expanded(child: _field(context, 'Fat g', _fat, width: 0)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -292,7 +302,7 @@ class _EditMacrosDialogState extends State<EditMacrosDialog> {
                       _affectedRecipes == 0
                           ? 'No recipes use this yet.'
                           : 'Saving recalculates $_affectedRecipes '
-                              '${_affectedRecipes == 1 ? 'recipe' : 'recipes'}.',
+                                '${_affectedRecipes == 1 ? 'recipe' : 'recipes'}.',
                       style: TextStyle(
                         fontFamily: t.bodyFamily,
                         fontSize: 11.5,
@@ -305,11 +315,7 @@ class _EditMacrosDialogState extends State<EditMacrosDialog> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: 8),
-                  AppButton(
-                    'Save',
-                    kind: ButtonKind.primary,
-                    onPressed: _save,
-                  ),
+                  AppButton('Save', kind: ButtonKind.primary, onPressed: _save),
                 ],
               ),
             ),

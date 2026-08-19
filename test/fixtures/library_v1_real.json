@@ -1,0 +1,1148 @@
+﻿{
+    "schema":  1,
+    "recipes":  [
+                    {
+                        "id":  "a225a746-4fc3-4eef-b318-0ef3f0911f27",
+                        "title":  "Chicken Parmesan",
+                        "mealTypeId":  "dafbab08-3dc1-464d-b45b-7c199b0cfcb7",
+                        "tags":  [
+                                     "high-protein",
+                                     "comfort"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  4,
+                        "sourceUrl":  "https://www.seriouseats.com",
+                        "notes":  "Sauce is better made the day before. Half quantities fit one pan; doubling means frying in batches or the crust steams.",
+                        "totalMinutes":  40,
+                        "timesCooked":  6,
+                        "components":  [
+                                           {
+                                               "id":  "f930671f-58af-49c9-a3ab-4b7c393ee5e8",
+                                               "recipeId":  "a225a746-4fc3-4eef-b318-0ef3f0911f27",
+                                               "name":  "Cutlets",
+                                               "order":  0
+                                           },
+                                           {
+                                               "id":  "b3940d80-3105-49ec-ab17-15dbe77ac7a3",
+                                               "recipeId":  "a225a746-4fc3-4eef-b318-0ef3f0911f27",
+                                               "name":  "Breading",
+                                               "order":  1
+                                           },
+                                           {
+                                               "id":  "9c52e60f-3d9f-47ba-b5e2-f764d3290ff5",
+                                               "recipeId":  "a225a746-4fc3-4eef-b318-0ef3f0911f27",
+                                               "name":  "Tomato sauce",
+                                               "order":  2
+                                           },
+                                           {
+                                               "id":  "8dda5c39-9f9b-4e0b-8192-32b3c3f08075",
+                                               "recipeId":  "a225a746-4fc3-4eef-b318-0ef3f0911f27",
+                                               "name":  "Fry \u0026 finish",
+                                               "order":  3
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "be901213-649c-46c5-9b24-69ee942d51ae",
+                                                "componentId":  "f930671f-58af-49c9-a3ab-4b7c393ee5e8",
+                                                "quantity":  4.0,
+                                                "unit":  "",
+                                                "name":  "Chicken cutlets",
+                                                "pantryItemId":  "158387ec-5661-4004-b736-8d0a9c8aaa72",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "020e1b10-2ff7-4fac-8b2f-1d8c73672c8e",
+                                                "componentId":  "b3940d80-3105-49ec-ab17-15dbe77ac7a3",
+                                                "quantity":  2.0,
+                                                "unit":  "",
+                                                "name":  "Eggs, beaten",
+                                                "pantryItemId":  "5a0e8db3-7ea4-4925-b253-a74db6b909ac",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "592ccec1-03b1-425a-813b-5662e43ff921",
+                                                "componentId":  "b3940d80-3105-49ec-ab17-15dbe77ac7a3",
+                                                "quantity":  100.0,
+                                                "unit":  "g",
+                                                "name":  "Panko breadcrumbs",
+                                                "pantryItemId":  null,
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            },
+                                            {
+                                                "id":  "34d3e54c-c486-4b38-afa0-ebd2cb0b5e0f",
+                                                "componentId":  "b3940d80-3105-49ec-ab17-15dbe77ac7a3",
+                                                "quantity":  60.0,
+                                                "unit":  "g",
+                                                "name":  "Parmesan, grated",
+                                                "pantryItemId":  "4085fb65-30f8-4b84-a206-73d88c0d8a70",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  3
+                                            },
+                                            {
+                                                "id":  "17808821-b036-4c48-a7b3-7468d325d6f0",
+                                                "componentId":  "9c52e60f-3d9f-47ba-b5e2-f764d3290ff5",
+                                                "quantity":  400.0,
+                                                "unit":  "g",
+                                                "name":  "Canned tomatoes",
+                                                "pantryItemId":  "3d520c75-2283-4e2f-a07e-36267bf79f42",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  4
+                                            },
+                                            {
+                                                "id":  "ca836f68-98b1-405e-af11-1ddc0da23861",
+                                                "componentId":  "9c52e60f-3d9f-47ba-b5e2-f764d3290ff5",
+                                                "quantity":  1.0,
+                                                "unit":  "",
+                                                "name":  "Onion, diced",
+                                                "pantryItemId":  "c07b1ed2-cbaa-4a0b-9c17-75281203472b",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  5
+                                            },
+                                            {
+                                                "id":  "77a6641c-9552-4ef7-803f-77f172eaba50",
+                                                "componentId":  "9c52e60f-3d9f-47ba-b5e2-f764d3290ff5",
+                                                "quantity":  2.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Olive oil",
+                                                "pantryItemId":  "ede69279-307c-4008-ad0c-580d4091fe31",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  6
+                                            },
+                                            {
+                                                "id":  "a00b5083-a908-475a-88bb-6fc9b3ecf75b",
+                                                "componentId":  "8dda5c39-9f9b-4e0b-8192-32b3c3f08075",
+                                                "quantity":  2.0,
+                                                "unit":  "balls",
+                                                "name":  "Fresh mozzarella",
+                                                "pantryItemId":  "26a95516-d042-402b-8aea-3b1eeb11ad8a",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  7
+                                            },
+                                            {
+                                                "id":  "3f17849a-8475-4564-91e1-e34dda34d3b6",
+                                                "componentId":  "8dda5c39-9f9b-4e0b-8192-32b3c3f08075",
+                                                "quantity":  null,
+                                                "unit":  "handful",
+                                                "name":  "Basil",
+                                                "pantryItemId":  "b3eaf7f5-973d-46fb-b0b0-c320d631f647",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  8
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "ac8305e3-334d-45e3-a379-0bd3f56db406",
+                                          "componentId":  "f930671f-58af-49c9-a3ab-4b7c393ee5e8",
+                                          "text":  "Butterfly the cutlets and pound them to an even 1 cm. Season both sides and leave them out while you set up the breading.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "a4843498-4a97-40eb-8d65-29055e739e31",
+                                          "componentId":  "b3940d80-3105-49ec-ab17-15dbe77ac7a3",
+                                          "text":  "Set out three dishes: flour, beaten eggs, and panko mixed with half the parmesan.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "7fda1691-b133-4276-9d0d-3ec7afdec30e",
+                                          "componentId":  "b3940d80-3105-49ec-ab17-15dbe77ac7a3",
+                                          "text":  "Bread the cutlets: flour, egg, then the panko and parmesan mix. Press the crumbs on firmly.",
+                                          "order":  2,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "0a51bab0-bef8-4609-90d8-b51700b01fde",
+                                          "componentId":  "9c52e60f-3d9f-47ba-b5e2-f764d3290ff5",
+                                          "text":  "Simmer the tomatoes with the onion and a glug of oil for 20 minutes, until it thickens. Season and set aside.",
+                                          "order":  3,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "8194f595-3586-4c90-bdd3-66665c94d784",
+                                          "componentId":  "8dda5c39-9f9b-4e0b-8192-32b3c3f08075",
+                                          "text":  "Fry in a shallow pan over medium-high heat, three minutes a side, until deep golden. Drain on a rack, not paper.",
+                                          "order":  4,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "0690e041-2208-4b04-81b0-65be213af73d",
+                                          "componentId":  "8dda5c39-9f9b-4e0b-8192-32b3c3f08075",
+                                          "text":  "Spoon sauce over each cutlet, top with torn mozzarella and the rest of the parmesan, and grill until blistered. Finish with basil.",
+                                          "order":  5,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "d1719439-fefc-4310-bef1-00fa1259125d",
+                        "title":  "Overnight Oats",
+                        "mealTypeId":  "c001e0e8-bd26-4287-8a56-90d4ee7d2fa3",
+                        "tags":  [
+                                     "no-cook",
+                                     "meal-prep"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  1,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  5,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                               "recipeId":  "d1719439-fefc-4310-bef1-00fa1259125d",
+                                               "name":  "The jar",
+                                               "order":  0
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "fe3e3031-6065-4e4c-a1a1-3cc56ddcca30",
+                                                "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                                "quantity":  80.0,
+                                                "unit":  "g",
+                                                "name":  "Rolled oats",
+                                                "pantryItemId":  "5f5398d8-eb65-47b7-96d4-2269244a33b3",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "ba6c7148-ca17-4e86-ac9a-b4924cafe88d",
+                                                "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                                "quantity":  150.0,
+                                                "unit":  "g",
+                                                "name":  "Skyr",
+                                                "pantryItemId":  "e58a9d42-0c7c-44f1-b3ea-f1b6190345cc",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "93bcbe14-af93-447d-bc73-43a50224a8f5",
+                                                "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                                "quantity":  120.0,
+                                                "unit":  "ml",
+                                                "name":  "Milk",
+                                                "pantryItemId":  "8b3b4afa-254d-4b85-90dd-f59df351d0e6",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            },
+                                            {
+                                                "id":  "8322d6df-336a-4baf-b2c6-55ac0ce37b3a",
+                                                "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                                "quantity":  15.0,
+                                                "unit":  "g",
+                                                "name":  "Chia seeds",
+                                                "pantryItemId":  "b7516380-6db8-4686-96ce-badf0baa6ab5",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  3
+                                            },
+                                            {
+                                                "id":  "1951ad6c-e2a4-4060-b906-3a63a75a2111",
+                                                "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                                "quantity":  1.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Maple syrup",
+                                                "pantryItemId":  "d72f78c1-b1d6-4173-8ef9-c1ace42c8ced",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  4
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "53953f66-a931-45ff-8455-d4bf61e02015",
+                                          "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                          "text":  "Stir everything together in a jar, seal it, and leave it in the fridge overnight.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "a5bd9772-5b47-4bc0-814c-e21b9fd99e3f",
+                                          "componentId":  "50e9955e-373a-48d9-bc68-c3b7cc3069b9",
+                                          "text":  "Loosen with a splash more milk in the morning.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "f4a399c6-e840-4bd3-a6ad-4b1751b18557",
+                        "title":  "Japanese Chicken Curry",
+                        "mealTypeId":  "dafbab08-3dc1-464d-b45b-7c199b0cfcb7",
+                        "tags":  [
+                                     "high-protein",
+                                     "comfort"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  4,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  35,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                               "recipeId":  "f4a399c6-e840-4bd3-a6ad-4b1751b18557",
+                                               "name":  "The pot",
+                                               "order":  0
+                                           },
+                                           {
+                                               "id":  "50947d3c-c39e-4f12-8316-1b14c1856621",
+                                               "recipeId":  "f4a399c6-e840-4bd3-a6ad-4b1751b18557",
+                                               "name":  "Finish",
+                                               "order":  1
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "d97c9422-8ae8-4d9a-85cf-20782d1bf866",
+                                                "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                                "quantity":  500.0,
+                                                "unit":  "g",
+                                                "name":  "Chicken breast",
+                                                "pantryItemId":  "158387ec-5661-4004-b736-8d0a9c8aaa72",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "24ff9427-b379-435d-9431-5cfeb544e4f5",
+                                                "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                                "quantity":  2.0,
+                                                "unit":  "",
+                                                "name":  "Onions",
+                                                "pantryItemId":  "c07b1ed2-cbaa-4a0b-9c17-75281203472b",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "7f805079-528c-486d-92ec-85abf18996bc",
+                                                "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                                "quantity":  2.0,
+                                                "unit":  "",
+                                                "name":  "Carrots",
+                                                "pantryItemId":  "137902de-5b78-4161-95c0-bd91b95ba13e",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            },
+                                            {
+                                                "id":  "6e27df82-da90-4b0d-bffd-441bc8c0d954",
+                                                "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                                "quantity":  3.0,
+                                                "unit":  "",
+                                                "name":  "Potatoes",
+                                                "pantryItemId":  "bf21ee7f-2c39-442c-814a-624afdda0f1c",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  3
+                                            },
+                                            {
+                                                "id":  "2f9944f9-5628-414d-a153-18352c6a604f",
+                                                "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                                "quantity":  1.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Olive oil",
+                                                "pantryItemId":  "ede69279-307c-4008-ad0c-580d4091fe31",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  4
+                                            },
+                                            {
+                                                "id":  "12babef4-69ec-4d6b-8b03-d39b026a6e0c",
+                                                "componentId":  "50947d3c-c39e-4f12-8316-1b14c1856621",
+                                                "quantity":  110.0,
+                                                "unit":  "g",
+                                                "name":  "Curry roux",
+                                                "pantryItemId":  "a0dcc396-369a-4a9e-a8d3-178211c034f8",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  5
+                                            },
+                                            {
+                                                "id":  "599f5279-0ee5-468b-aec4-001a8b094a41",
+                                                "componentId":  "50947d3c-c39e-4f12-8316-1b14c1856621",
+                                                "quantity":  600.0,
+                                                "unit":  "ml",
+                                                "name":  "Water",
+                                                "pantryItemId":  null,
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  6
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "ac7a192a-f55f-4394-be70-30ab481724d8",
+                                          "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                          "text":  "Brown the chicken in the oil, then lift it out.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "0b2ffa40-5cc4-4cba-81ca-67e9a790f8f2",
+                                          "componentId":  "909e0e17-046a-45f4-b327-3a9fcebdbd3a",
+                                          "text":  "Soften the onion, carrot and potato in the same pot for ten minutes.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "a699126b-dfb1-4e40-ac8c-b85b79832726",
+                                          "componentId":  "50947d3c-c39e-4f12-8316-1b14c1856621",
+                                          "text":  "Return the chicken, add the water, and simmer until the vegetables give.",
+                                          "order":  2,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "6863b58c-f028-40af-b320-eeaa1743509e",
+                                          "componentId":  "50947d3c-c39e-4f12-8316-1b14c1856621",
+                                          "text":  "Off the heat, melt the roux blocks in and simmer five more minutes until it coats a spoon.",
+                                          "order":  3,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "6bc663f8-1a5d-4145-a78e-2d279120b826",
+                        "title":  "Air Fryer Salmon",
+                        "mealTypeId":  "dafbab08-3dc1-464d-b45b-7c199b0cfcb7",
+                        "tags":  [
+                                     "air-fryer",
+                                     "omega-3"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  2,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  12,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "6a1c628b-50c0-4ac8-8744-707b4f668dc2",
+                                               "recipeId":  "6bc663f8-1a5d-4145-a78e-2d279120b826",
+                                               "name":  "Salmon",
+                                               "order":  0
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "af1ba1d4-022e-4410-8cf7-3b622fd551c5",
+                                                "componentId":  "6a1c628b-50c0-4ac8-8744-707b4f668dc2",
+                                                "quantity":  2.0,
+                                                "unit":  "fillets",
+                                                "name":  "Salmon fillets",
+                                                "pantryItemId":  "4792c688-ef72-4a97-ad25-cf77bda9a56e",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "aee7ac4c-5fc3-44f9-9c35-3a63bc9849ee",
+                                                "componentId":  "6a1c628b-50c0-4ac8-8744-707b4f668dc2",
+                                                "quantity":  1.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Olive oil",
+                                                "pantryItemId":  "ede69279-307c-4008-ad0c-580d4091fe31",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "9fc3bcb6-a6f0-4d5b-88d3-1dbf0d5870dd",
+                                                "componentId":  "6a1c628b-50c0-4ac8-8744-707b4f668dc2",
+                                                "quantity":  1.0,
+                                                "unit":  "tsp",
+                                                "name":  "Smoked paprika",
+                                                "pantryItemId":  "cee065ab-7d7d-4dd6-a029-b076e4ceb4a8",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "6262c509-de92-4468-b6bb-4db505346359",
+                                          "componentId":  "6a1c628b-50c0-4ac8-8744-707b4f668dc2",
+                                          "text":  "Pat the fillets dry, rub with oil and paprika, and season.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "f3debcd2-8b65-4015-903e-1aaf5710efe3",
+                                          "componentId":  "6a1c628b-50c0-4ac8-8744-707b4f668dc2",
+                                          "text":  "Air fry at 200Ã‚Â°C for nine minutes, skin down, until it flakes.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "c58784ea-309f-4e76-ac32-464d141d2b79",
+                        "title":  "Tuna Poke Bowl",
+                        "mealTypeId":  "c0fffcc5-f355-4d56-8aff-d301396400dc",
+                        "tags":  [
+                                     "high-protein",
+                                     "fresh"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  2,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  20,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                               "recipeId":  "c58784ea-309f-4e76-ac32-464d141d2b79",
+                                               "name":  "Bowl",
+                                               "order":  0
+                                           },
+                                           {
+                                               "id":  "3220372c-204a-4ce3-94fb-174d986362be",
+                                               "recipeId":  "c58784ea-309f-4e76-ac32-464d141d2b79",
+                                               "name":  "Dressing",
+                                               "order":  1
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "9c86e612-266b-456a-9bc3-d9ef2b4495df",
+                                                "componentId":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                                "quantity":  300.0,
+                                                "unit":  "g",
+                                                "name":  "Sushi-grade tuna",
+                                                "pantryItemId":  "a9634634-1356-4a9c-bf23-885f72e50e35",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "ebfc0f6b-6832-431f-b7d9-aa685cefcd85",
+                                                "componentId":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                                "quantity":  150.0,
+                                                "unit":  "g",
+                                                "name":  "Sushi rice",
+                                                "pantryItemId":  "52960c14-f0f5-41ff-b6de-4362d7f87937",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "3e1b8d39-5fc9-42c4-aa6d-00e7b841a611",
+                                                "componentId":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                                "quantity":  1.0,
+                                                "unit":  "",
+                                                "name":  "Avocado",
+                                                "pantryItemId":  "8642d391-e5cf-42ec-aa34-81b4631a27ca",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            },
+                                            {
+                                                "id":  "481179bc-efaa-4605-8c1c-928038e899d8",
+                                                "componentId":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                                "quantity":  100.0,
+                                                "unit":  "g",
+                                                "name":  "Cucumber",
+                                                "pantryItemId":  "ea307f7a-ff17-460a-94f4-b5f3ee34764b",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  3
+                                            },
+                                            {
+                                                "id":  "56bcc141-2952-4f48-9176-7418b6361393",
+                                                "componentId":  "3220372c-204a-4ce3-94fb-174d986362be",
+                                                "quantity":  2.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Soy sauce",
+                                                "pantryItemId":  "fb3458f4-e02a-4d8c-992c-f78b3ec43249",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  4
+                                            },
+                                            {
+                                                "id":  "0644b807-1be5-4621-84a9-9fad93fffbca",
+                                                "componentId":  "3220372c-204a-4ce3-94fb-174d986362be",
+                                                "quantity":  1.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Sesame oil",
+                                                "pantryItemId":  "f785fb94-9204-47a6-91ff-651b06b06042",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  5
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "c8efdadd-2e0a-4dc1-9d5b-aef18b2532da",
+                                          "componentId":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                          "text":  "Cook the rice and let it cool to room temperature.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "f8af0dd8-5ba6-4ade-acdb-6479a65906a2",
+                                          "componentId":  "6f84ea73-63f5-4a9d-b94b-bdfebaf8735b",
+                                          "text":  "Dice the tuna, avocado and cucumber into even cubes.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "eb06aabf-9194-4648-9084-17c37a7662d2",
+                                          "componentId":  "3220372c-204a-4ce3-94fb-174d986362be",
+                                          "text":  "Whisk the dressing, fold it through the tuna, and build the bowls.",
+                                          "order":  2,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "b53c3f82-7337-4225-b524-5c403ac237c7",
+                        "title":  "Spicy Chickpea Stew",
+                        "mealTypeId":  "c0fffcc5-f355-4d56-8aff-d301396400dc",
+                        "tags":  [
+                                     "vegetarian",
+                                     "quick"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  4,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  25,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                               "recipeId":  "b53c3f82-7337-4225-b524-5c403ac237c7",
+                                               "name":  "Stew",
+                                               "order":  0
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "667faa94-2fe0-46e9-a95c-d3799e5f7ba3",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  800.0,
+                                                "unit":  "g",
+                                                "name":  "Chickpeas",
+                                                "pantryItemId":  "d8d825e0-0964-44e0-aef6-985e2864e247",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "ce970f4d-8057-4d0b-8919-9fa50c598252",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  400.0,
+                                                "unit":  "g",
+                                                "name":  "Canned tomatoes",
+                                                "pantryItemId":  "3d520c75-2283-4e2f-a07e-36267bf79f42",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "b0a6c0d8-caa2-40c0-9e17-dd2afc7a0797",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  400.0,
+                                                "unit":  "ml",
+                                                "name":  "Coconut milk",
+                                                "pantryItemId":  "fec3da3a-a298-4c33-998b-6611f6af4fdd",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            },
+                                            {
+                                                "id":  "27b6752a-1391-4125-960e-d8c9c7565de9",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  1.0,
+                                                "unit":  "",
+                                                "name":  "Onion",
+                                                "pantryItemId":  "c07b1ed2-cbaa-4a0b-9c17-75281203472b",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  3
+                                            },
+                                            {
+                                                "id":  "6bd99074-0b9b-431d-846f-309827ee7c68",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  100.0,
+                                                "unit":  "g",
+                                                "name":  "Spinach",
+                                                "pantryItemId":  "0e7ac86f-ef84-494e-843d-c899dd30a02e",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  4
+                                            },
+                                            {
+                                                "id":  "cb49ecd7-0d78-434d-a20f-03f270452617",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  2.0,
+                                                "unit":  "tsp",
+                                                "name":  "Cumin",
+                                                "pantryItemId":  "869859d5-c0cd-4da5-b8e2-e0614d0933f5",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  5
+                                            },
+                                            {
+                                                "id":  "20e99853-a919-41d9-a4ba-928a556c2a0c",
+                                                "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                                "quantity":  2.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Olive oil",
+                                                "pantryItemId":  "ede69279-307c-4008-ad0c-580d4091fe31",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  6
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "a44a6e39-022e-4d14-9d4d-6f7b15c6c6c1",
+                                          "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                          "text":  "Soften the onion in the oil, then toast the cumin for a minute.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "7b1bd093-9d87-43f9-96e0-84ad545348cd",
+                                          "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                          "text":  "Add the chickpeas, tomatoes and coconut milk and simmer fifteen minutes.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "c8aa6d2d-1ecd-440d-a8c9-ca8816e31127",
+                                          "componentId":  "4b158d35-f914-44f8-8d25-cd2a60a42a8f",
+                                          "text":  "Wilt the spinach through at the end and season hard.",
+                                          "order":  2,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "2a36fc12-62c3-48af-9450-2113b52d0adf",
+                        "title":  "Crispy Chickpeas",
+                        "mealTypeId":  "02c5c313-5056-4f68-b84d-caa1702af052",
+                        "tags":  [
+                                     "air-fryer",
+                                     "crunchy"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  4,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  22,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "6d949f7e-f448-4dd3-9f52-4b4a0da6daf8",
+                                               "recipeId":  "2a36fc12-62c3-48af-9450-2113b52d0adf",
+                                               "name":  "Chickpeas",
+                                               "order":  0
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "73f60c71-45c8-4ad0-b7f5-13a3ef702c95",
+                                                "componentId":  "6d949f7e-f448-4dd3-9f52-4b4a0da6daf8",
+                                                "quantity":  400.0,
+                                                "unit":  "g",
+                                                "name":  "Chickpeas",
+                                                "pantryItemId":  "d8d825e0-0964-44e0-aef6-985e2864e247",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "e3885523-8550-460d-9240-aab081ff33d8",
+                                                "componentId":  "6d949f7e-f448-4dd3-9f52-4b4a0da6daf8",
+                                                "quantity":  1.0,
+                                                "unit":  "tbsp",
+                                                "name":  "Olive oil",
+                                                "pantryItemId":  "ede69279-307c-4008-ad0c-580d4091fe31",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "aaa75158-97f8-4e56-8cb1-26e5db7a6c7a",
+                                                "componentId":  "6d949f7e-f448-4dd3-9f52-4b4a0da6daf8",
+                                                "quantity":  1.0,
+                                                "unit":  "tsp",
+                                                "name":  "Smoked paprika",
+                                                "pantryItemId":  "cee065ab-7d7d-4dd6-a029-b076e4ceb4a8",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "12380cf8-a761-4e0d-8fed-e75c628f4d29",
+                                          "componentId":  "6d949f7e-f448-4dd3-9f52-4b4a0da6daf8",
+                                          "text":  "Drain and dry the chickpeas thoroughly Ã¢â‚¬â€ wet ones steam.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "4de48670-d29e-4909-a7d2-5dd2b94b9660",
+                                          "componentId":  "6d949f7e-f448-4dd3-9f52-4b4a0da6daf8",
+                                          "text":  "Toss with oil and paprika, then air fry at 190Ã‚Â°C for twenty minutes, shaking twice.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    },
+                    {
+                        "id":  "4f1395ca-0595-491b-8287-7bc5f436b991",
+                        "title":  "Fudgy Brownies",
+                        "mealTypeId":  "3effe236-d4ca-4c05-9c35-e80a452aaf48",
+                        "tags":  [
+                                     "quick"
+                                 ],
+                        "photoPath":  null,
+                        "servings":  12,
+                        "sourceUrl":  null,
+                        "notes":  "",
+                        "totalMinutes":  35,
+                        "timesCooked":  0,
+                        "components":  [
+                                           {
+                                               "id":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                               "recipeId":  "4f1395ca-0595-491b-8287-7bc5f436b991",
+                                               "name":  "Batter",
+                                               "order":  0
+                                           }
+                                       ],
+                        "ingredients":  [
+                                            {
+                                                "id":  "828be3eb-a5ca-46ab-a9d0-5717e74c8f65",
+                                                "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                                "quantity":  200.0,
+                                                "unit":  "g",
+                                                "name":  "Chocolate chips",
+                                                "pantryItemId":  "797b4de3-c0d7-46a8-a070-359bd97bd985",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  0
+                                            },
+                                            {
+                                                "id":  "ea678cf3-bc88-46eb-b1bd-a6ccf25134d7",
+                                                "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                                "quantity":  150.0,
+                                                "unit":  "g",
+                                                "name":  "Butter",
+                                                "pantryItemId":  "0bff17e5-7680-42c3-9ae1-7c371c1c2fec",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  1
+                                            },
+                                            {
+                                                "id":  "42abd791-40d3-4025-a1f1-f5caecf78373",
+                                                "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                                "quantity":  3.0,
+                                                "unit":  "",
+                                                "name":  "Eggs",
+                                                "pantryItemId":  "5a0e8db3-7ea4-4925-b253-a74db6b909ac",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  2
+                                            },
+                                            {
+                                                "id":  "901b186a-db08-45a9-9e23-35052a7210d0",
+                                                "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                                "quantity":  200.0,
+                                                "unit":  "g",
+                                                "name":  "Sugar",
+                                                "pantryItemId":  "3ba22574-683e-4eef-a85d-56ab217bed63",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  3
+                                            },
+                                            {
+                                                "id":  "6a62583b-2a1f-4e4d-9144-d50beb62dc8e",
+                                                "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                                "quantity":  90.0,
+                                                "unit":  "g",
+                                                "name":  "Flour",
+                                                "pantryItemId":  "e7526f0d-87c9-4e21-ba6d-f72eea4f5e0d",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  4
+                                            },
+                                            {
+                                                "id":  "be3d1a4d-902c-4a62-aacc-3e1db3ab7244",
+                                                "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                                "quantity":  40.0,
+                                                "unit":  "g",
+                                                "name":  "Cocoa powder",
+                                                "pantryItemId":  "0777ff47-1e1f-471c-acfe-706ebdd1b0c3",
+                                                "isBranded":  false,
+                                                "isEstimated":  false,
+                                                "order":  5
+                                            }
+                                        ],
+                        "steps":  [
+                                      {
+                                          "id":  "159adf9c-2527-467b-9e4e-aa0142c02807",
+                                          "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                          "text":  "Melt the butter with half the chocolate chips and let it cool a little.",
+                                          "order":  0,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "bc5c9ee3-b0d7-404a-8caf-9cb07984e336",
+                                          "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                          "text":  "Whisk the eggs and sugar until pale, then fold in the chocolate.",
+                                          "order":  1,
+                                          "timerMinutes":  null
+                                      },
+                                      {
+                                          "id":  "d6e1f2e9-deae-4495-ae2e-f9fd8cb5d0f8",
+                                          "componentId":  "12fdb562-47d2-43f3-9638-c18d46f44502",
+                                          "text":  "Fold in the flour and cocoa, stir through the rest of the chips, and bake at 180Ã‚Â°C for 25 minutes.",
+                                          "order":  2,
+                                          "timerMinutes":  null
+                                      }
+                                  ]
+                    }
+                ],
+    "mealTypes":  [
+                      {
+                          "id":  "c001e0e8-bd26-4287-8a56-90d4ee7d2fa3",
+                          "name":  "Breakfast",
+                          "order":  0
+                      },
+                      {
+                          "id":  "c0fffcc5-f355-4d56-8aff-d301396400dc",
+                          "name":  "Lunch",
+                          "order":  1
+                      },
+                      {
+                          "id":  "dafbab08-3dc1-464d-b45b-7c199b0cfcb7",
+                          "name":  "Dinner",
+                          "order":  2
+                      },
+                      {
+                          "id":  "02c5c313-5056-4f68-b84d-caa1702af052",
+                          "name":  "Snacks",
+                          "order":  3
+                      },
+                      {
+                          "id":  "c1f8d392-00d3-4765-9566-b54d5135ee74",
+                          "name":  "Sides",
+                          "order":  4
+                      },
+                      {
+                          "id":  "3effe236-d4ca-4c05-9c35-e80a452aaf48",
+                          "name":  "Dessert",
+                          "order":  5
+                      }
+                  ],
+    "aisles":  [
+                   {
+                       "id":  "c7ae01d1-fa0d-48f4-9388-4fd188822842",
+                       "name":  "Produce",
+                       "order":  0
+                   },
+                   {
+                       "id":  "0e0ad0cc-3477-4992-823e-61f54432ca94",
+                       "name":  "Bakery",
+                       "order":  1
+                   },
+                   {
+                       "id":  "6df9be9e-7fe9-4d45-ab1c-4c293e9b5017",
+                       "name":  "Dairy",
+                       "order":  2
+                   },
+                   {
+                       "id":  "7552ce56-dbef-4926-8c43-8582c3561af7",
+                       "name":  "Tinned \u0026 dry",
+                       "order":  3
+                   }
+               ],
+    "groceries":  [
+                      {
+                          "id":  "a2cbc7eb-859d-4cf6-94fe-6d26ad5783a2",
+                          "name":  "Panko breadcrumbs",
+                          "aisleId":  "0e0ad0cc-3477-4992-823e-61f54432ca94",
+                          "quantity":  "100 g",
+                          "sources":  [
+                                          "Chicken Parmesan"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "aa0f76c1-2ea9-4b62-ab50-fcc91a6e3234",
+                          "name":  "Lemons",
+                          "aisleId":  "c7ae01d1-fa0d-48f4-9388-4fd188822842",
+                          "quantity":  "2",
+                          "sources":  [
+                                          "Added by hand"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "5cdff796-70ab-48ca-9922-840d1fdb954e",
+                          "name":  "Double cream",
+                          "aisleId":  "6df9be9e-7fe9-4d45-ab1c-4c293e9b5017",
+                          "quantity":  "300 ml",
+                          "sources":  [
+                                          "Chicken Marsala"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "815bb881-5403-45f7-a9e4-06184e3a1ffb",
+                          "name":  "Chestnut mushrooms",
+                          "aisleId":  "c7ae01d1-fa0d-48f4-9388-4fd188822842",
+                          "quantity":  "250 g",
+                          "sources":  [
+                                          "Chicken Marsala"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "f3af9190-63ca-4bf7-9dab-cc8fa09bf92d",
+                          "name":  "Flat-leaf parsley",
+                          "aisleId":  "c7ae01d1-fa0d-48f4-9388-4fd188822842",
+                          "quantity":  "1 bunch",
+                          "sources":  [
+                                          "Added by hand"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "eb59cb34-bee9-4719-86ff-e9d665fbbf58",
+                          "name":  "Coconut milk",
+                          "aisleId":  "7552ce56-dbef-4926-8c43-8582c3561af7",
+                          "quantity":  "400 ml",
+                          "sources":  [
+                                          "Spicy Chickpea Stew"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  "fec3da3a-a298-4c33-998b-6611f6af4fdd"
+                      },
+                      {
+                          "id":  "7130d0b4-3bd0-486d-9a7b-c3cd7bf0bc1b",
+                          "name":  "Nori sheets",
+                          "aisleId":  "7552ce56-dbef-4926-8c43-8582c3561af7",
+                          "quantity":  "1 pack",
+                          "sources":  [
+                                          "Tuna Poke Bowl"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "5e79f28b-3434-4ec0-b761-dff6e3e768a6",
+                          "name":  "Spring onions",
+                          "aisleId":  "c7ae01d1-fa0d-48f4-9388-4fd188822842",
+                          "quantity":  "1 bunch",
+                          "sources":  [
+                                          "Tuna Poke Bowl"
+                                      ],
+                          "checked":  false,
+                          "pantryItemId":  null
+                      },
+                      {
+                          "id":  "b4625e6f-5c44-4e45-bdff-88a6088b3697",
+                          "name":  "Olive oil",
+                          "aisleId":  "7552ce56-dbef-4926-8c43-8582c3561af7",
+                          "quantity":  "500 ml",
+                          "sources":  [
+                                          "Added by hand"
+                                      ],
+                          "checked":  true,
+                          "pantryItemId":  "ede69279-307c-4008-ad0c-580d4091fe31"
+                      }
+                  ],
+    "plan":  [
+                 {
+                     "id":  "9f8eec12-eb7f-4292-ae1d-8f028dfbeddb",
+                     "date":  "2026-08-03",
+                     "slot":  "breakfast",
+                     "recipeId":  "d1719439-fefc-4310-bef1-00fa1259125d"
+                 },
+                 {
+                     "id":  "03ddf361-d6ec-434e-bad0-b4270075ea07",
+                     "date":  "2026-08-03",
+                     "slot":  "lunch",
+                     "recipeId":  "b53c3f82-7337-4225-b524-5c403ac237c7"
+                 },
+                 {
+                     "id":  "7abe3800-3950-455e-954b-2a1e420a1a68",
+                     "date":  "2026-08-04",
+                     "slot":  "lunch",
+                     "recipeId":  "c58784ea-309f-4e76-ac32-464d141d2b79"
+                 },
+                 {
+                     "id":  "8ba613d2-5f9a-4558-b671-b55f15f7d4ac",
+                     "date":  "2026-08-04",
+                     "slot":  "dinner",
+                     "recipeId":  "f4a399c6-e840-4bd3-a6ad-4b1751b18557"
+                 },
+                 {
+                     "id":  "ec2c7a94-15d3-4ab8-b0b9-f3361096376c",
+                     "date":  "2026-08-05",
+                     "slot":  "breakfast",
+                     "recipeId":  "d1719439-fefc-4310-bef1-00fa1259125d"
+                 },
+                 {
+                     "id":  "d0d4ddd8-9d39-4c97-a01d-380ffb7c1547",
+                     "date":  "2026-08-06",
+                     "slot":  "dinner",
+                     "recipeId":  "a225a746-4fc3-4eef-b318-0ef3f0911f27"
+                 },
+                 {
+                     "id":  "68f1da86-58c2-467c-9f54-af257058c03f",
+                     "date":  "2026-08-06",
+                     "slot":  "snack",
+                     "recipeId":  "2a36fc12-62c3-48af-9450-2113b52d0adf"
+                 },
+                 {
+                     "id":  "570cd4b7-17a5-4f19-b9a3-d49a4c6edde5",
+                     "date":  "2026-08-07",
+                     "slot":  "dinner",
+                     "recipeId":  "6bc663f8-1a5d-4145-a78e-2d279120b826"
+                 },
+                 {
+                     "id":  "80d6a90d-be61-46b9-9202-5ab27c00afa3",
+                     "date":  "2026-08-08",
+                     "slot":  "lunch",
+                     "recipeId":  "c58784ea-309f-4e76-ac32-464d141d2b79"
+                 },
+                 {
+                     "id":  "db0188af-b55b-4e3f-a3cb-b7ae7cd9f1b8",
+                     "date":  "2026-08-09",
+                     "slot":  "dinner",
+                     "recipeId":  "f4a399c6-e840-4bd3-a6ad-4b1751b18557"
+                 }
+             ]
+}

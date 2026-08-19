@@ -145,7 +145,8 @@ class _RecipePageState extends State<RecipePage> {
       int total,
       List<CoverageResult> missing,
       List<CoverageResult> toBuy,
-    }) cov,
+    })
+    cov,
   ) {
     final t = context.tokens;
     final mealType = app.mealType(recipe.mealTypeId);
@@ -175,8 +176,7 @@ class _RecipePageState extends State<RecipePage> {
                       for (var i = 0; i < recipe.tags.length; i++)
                         Tag(
                           recipe.tags[i],
-                          style:
-                              i == 0 ? TagStyle.accent : TagStyle.outline,
+                          style: i == 0 ? TagStyle.accent : TagStyle.outline,
                         ),
                       if (mealType != null) Tag(mealType.name),
                       Padding(
@@ -258,7 +258,8 @@ class _RecipePageState extends State<RecipePage> {
       int total,
       List<CoverageResult> missing,
       List<CoverageResult> toBuy,
-    }) cov,
+    })
+    cov,
     int servings,
   ) {
     final t = context.tokens;
@@ -438,7 +439,9 @@ class _RecipePageState extends State<RecipePage> {
                   AppButton(
                     // Run out says so, so the row is not mistaken for
                     // something the pantry has never heard of.
-                    cov.coverage == Coverage.outOfStock ? 'run out · add' : 'add',
+                    cov.coverage == Coverage.outOfStock
+                        ? 'run out · add'
+                        : 'add',
                     kind: ButtonKind.ghost,
                     fontSize: 11,
                     height: 22,

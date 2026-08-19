@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../data/database.dart';
+import '../data/migrations.dart';
+import '../domain/sync/stamp.dart';
 import '../data/models.dart';
 import '../data/seed.dart';
 import '../data/settings.dart';
@@ -41,9 +43,24 @@ class AppState extends ChangeNotifier {
   // ── Loading ─────────────────────────────────────────────────────────────
 
   Future<void> load() async {
-    final savedLibrary = await _library.load();
-    final savedPantry = await _pantry.load();
-    settings = await _settingsStore.load() ?? AppSettings();
+    // Settings first, and deliberately so: every stamp names the device that
+    // wrote it, and migrating either database backfills stamps — so this
+    // device's identity has to exist before either file is touched.
+    settings = await _settingsStore.load(_migrationContext()) ?? AppSettings();
+    if (settings.deviceId == null) {
+      settings.deviceId = newId();
+      await _flushSettings();
+    }
+
+    final savedLibrary = await _library.load(
+      _migrationContext(await _library.modifiedAt()),
+    );
+    final savedPantry = await _pantry.load(
+      _migrationContext(await _pantry.modifiedAt()),
+    );
+
+    _clock = DeviceClock(deviceId: settings.deviceId!);
+    _clock.seed(_highWaterMark(savedLibrary, savedPantry));
 
     if (savedLibrary == null || savedPantry == null) {
       // First run. There is no onboarding, so the app simply opens with
@@ -61,6 +78,38 @@ class AppState extends ChangeNotifier {
     loaded = true;
     notifyListeners();
   }
+
+  /// What a migration needs to backfill: who we are, and when the file it is
+  /// reading was last written.
+  MigrationContext _migrationContext([DateTime? fileModifiedAt]) =>
+      MigrationContext(
+        deviceId: settings.deviceId ?? '',
+        now: DateTime.now().toUtc(),
+        fileModifiedAt: fileModifiedAt,
+      );
+
+  /// The highest stamp anywhere on disk.
+  ///
+  /// The clock is primed with this so a restored backup, or a system clock
+  /// that moved backwards between runs, cannot issue stamps below ones already
+  /// written — records stamped in that window could never win again.
+  Stamp _highWaterMark(LibraryDatabase? l, PantryDatabase? p) {
+    var top = Stamp.epoch;
+    void consider(Stamped e) => top = Stamp.max(top, e.stamp);
+    l?.recipes.forEach(consider);
+    l?.mealTypes.forEach(consider);
+    l?.aisles.forEach(consider);
+    l?.groceries.forEach(consider);
+    l?.plan.forEach(consider);
+    p?.items.forEach(consider);
+    for (final t in [...?l?.tombstones, ...?p?.tombstones]) {
+      top = Stamp.max(top, t.stamp);
+    }
+    return top;
+  }
+
+  /// Issues this device's stamps. Every mutation goes through it.
+  DeviceClock _clock = DeviceClock(deviceId: '');
 
   // ── Saving ──────────────────────────────────────────────────────────────
 
@@ -107,15 +156,14 @@ class AppState extends ChangeNotifier {
   MacroEngine get macros => MacroEngine(pantry.items);
 
   PantryCoverage get coverage => PantryCoverage(
-        pantry: pantry.items,
-        groceries: library.groceries,
-        assumeStaples: pantry.assumeStaples,
-      );
+    pantry: pantry.items,
+    groceries: library.groceries,
+    assumeStaples: pantry.assumeStaples,
+  );
 
   /// The count in the sidebar and the phone's tab badge — unchecked only, and
   /// it matches the list exactly.
-  int get openGroceryCount =>
-      library.groceries.where((g) => !g.checked).length;
+  int get openGroceryCount => library.groceries.where((g) => !g.checked).length;
 
   List<MealType> get mealTypes =>
       [...library.mealTypes]..sort((a, b) => a.order.compareTo(b.order));
@@ -193,8 +241,7 @@ class AppState extends ChangeNotifier {
     final ext = dot == -1 ? '.jpg' : sourcePath.substring(dot).toLowerCase();
     // The name carries a stamp so replacing a photo does not land on the old
     // file while Flutter still has it in its image cache.
-    final name =
-        '$recipeId-${DateTime.now().millisecondsSinceEpoch}$ext';
+    final name = '$recipeId-${DateTime.now().millisecondsSinceEpoch}$ext';
     final target = '${dir.path}${Platform.pathSeparator}$name';
 
     final previous = r.photoPath;
@@ -204,7 +251,9 @@ class AppState extends ChangeNotifier {
     _touchLibrary();
 
     // Drop the file it replaced, now that the new one is safely in place.
-    if (previous != null && previous != target && previous.startsWith(dir.path)) {
+    if (previous != null &&
+        previous != target &&
+        previous.startsWith(dir.path)) {
       try {
         await File(previous).delete();
       } on FileSystemException {
@@ -323,8 +372,9 @@ class AppState extends ChangeNotifier {
       for (final line in r.ingredients) {
         if (line.pantryItemId != itemId) continue;
         final totals = engine.forRecipe(r);
-        final result =
-            totals.lines.where((l) => l.ingredient.id == line.id).firstOrNull;
+        final result = totals.lines
+            .where((l) => l.ingredient.id == line.id)
+            .firstOrNull;
         out.add((
           recipe: r,
           line: line,
@@ -363,7 +413,9 @@ class AppState extends ChangeNotifier {
         .where((g) => g.name.trim().toLowerCase() == name.trim().toLowerCase())
         .firstOrNull;
     if (previous != null) {
-      final a = library.aisles.where((x) => x.id == previous.aisleId).firstOrNull;
+      final a = library.aisles
+          .where((x) => x.id == previous.aisleId)
+          .firstOrNull;
       if (a != null) return a;
     }
     return aisles.first;
@@ -514,12 +566,14 @@ class AppState extends ChangeNotifier {
     if (existing != null) {
       existing.recipeId = recipeId;
     } else {
-      library.plan.add(PlanEntry(
-        id: newId(),
-        date: dayOnly(date),
-        slot: slot,
-        recipeId: recipeId,
-      ));
+      library.plan.add(
+        PlanEntry(
+          id: newId(),
+          date: dayOnly(date),
+          slot: slot,
+          recipeId: recipeId,
+        ),
+      );
     }
     _touchLibrary();
   }
@@ -642,20 +696,27 @@ class AppState extends ChangeNotifier {
       case SuggestionSort.pantryMatch:
         out.sort((a, b) => a.missing.compareTo(b.missing));
       case SuggestionSort.mostProtein:
-        out.sort((a, b) => engine
-            .forRecipe(b.recipe)
-            .perServing
-            .protein
-            .compareTo(engine.forRecipe(a.recipe).perServing.protein));
+        out.sort(
+          (a, b) => engine
+              .forRecipe(b.recipe)
+              .perServing
+              .protein
+              .compareTo(engine.forRecipe(a.recipe).perServing.protein),
+        );
       case SuggestionSort.fewestCalories:
-        out.sort((a, b) => engine
-            .forRecipe(a.recipe)
-            .perServing
-            .calories
-            .compareTo(engine.forRecipe(b.recipe).perServing.calories));
+        out.sort(
+          (a, b) => engine
+              .forRecipe(a.recipe)
+              .perServing
+              .calories
+              .compareTo(engine.forRecipe(b.recipe).perServing.calories),
+        );
       case SuggestionSort.quickest:
-        out.sort((a, b) =>
-            (a.recipe.totalMinutes ?? 9999).compareTo(b.recipe.totalMinutes ?? 9999));
+        out.sort(
+          (a, b) => (a.recipe.totalMinutes ?? 9999).compareTo(
+            b.recipe.totalMinutes ?? 9999,
+          ),
+        );
     }
     return out;
   }
@@ -708,13 +769,14 @@ class AppState extends ChangeNotifier {
   /// Replaces the library, matching its ingredient names against the existing
   /// pantry on the way in — the same as a web import.
   Future<int> importLibrary(String path) async {
-    final incoming = await _library.importFrom(path);
+    final incoming = await _library.importFrom(path, _migrationContext());
     var linked = 0;
     for (final r in incoming.recipes) {
       for (final line in r.ingredients) {
         if (line.pantryItemId != null) continue;
-        final match =
-            pantry.items.where((p) => p.matchesName(line.name)).firstOrNull;
+        final match = pantry.items
+            .where((p) => p.matchesName(line.name))
+            .firstOrNull;
         if (match != null) {
           line.pantryItemId = match.id;
           linked++;
@@ -727,7 +789,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> importPantry(String path) async {
-    pantry = await _pantry.importFrom(path);
+    pantry = await _pantry.importFrom(path, _migrationContext());
     _touchPantry();
   }
 }

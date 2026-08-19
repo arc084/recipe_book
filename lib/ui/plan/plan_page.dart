@@ -27,8 +27,11 @@ class _PlanPageState extends State<PlanPage> {
   void initState() {
     super.initState();
     final today = DateTime.now();
-    _weekStart = DateTime(today.year, today.month, today.day)
-        .subtract(Duration(days: today.weekday - 1));
+    _weekStart = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).subtract(Duration(days: today.weekday - 1));
   }
 
   @override
@@ -37,8 +40,9 @@ class _PlanPageState extends State<PlanPage> {
     super.dispose();
   }
 
-  List<DateTime> get _days =>
-      [for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i))];
+  List<DateTime> get _days => [
+    for (var i = 0; i < 7; i++) _weekStart.add(Duration(days: i)),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -89,8 +93,8 @@ class _PlanPageState extends State<PlanPage> {
                 icon: Icons.chevron_left,
                 size: 28,
                 onPressed: () => setState(
-                  () => _weekStart =
-                      _weekStart.subtract(const Duration(days: 7)),
+                  () =>
+                      _weekStart = _weekStart.subtract(const Duration(days: 7)),
                 ),
               ),
               const SizedBox(width: 6),
@@ -107,7 +111,7 @@ class _PlanPageState extends State<PlanPage> {
                 missing.isEmpty
                     ? 'Nothing missing this week'
                     : 'Add ${missing.length} missing '
-                        '${missing.length == 1 ? 'item' : 'items'} to groceries',
+                          '${missing.length == 1 ? 'item' : 'items'} to groceries',
                 kind: ButtonKind.primary,
                 onPressed: missing.isEmpty
                     ? null
@@ -115,12 +119,14 @@ class _PlanPageState extends State<PlanPage> {
                         final n = app.addWeekMissingToGroceries(_weekStart);
                         ScaffoldMessenger.of(context)
                           ..clearSnackBars()
-                          ..showSnackBar(SnackBar(
-                            content: Text('$n added to groceries'),
-                            backgroundColor: t.surface,
-                            behavior: SnackBarBehavior.floating,
-                            width: 320,
-                          ));
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text('$n added to groceries'),
+                              backgroundColor: t.surface,
+                              behavior: SnackBarBehavior.floating,
+                              width: 320,
+                            ),
+                          );
                       },
               ),
             ],
@@ -192,9 +198,7 @@ class _PlanPageState extends State<PlanPage> {
                   fontFamily: t.bodyFamily,
                   fontSize: 12.5,
                   color: isToday ? t.accent : t.textSecondary,
-                  fontVariations: [
-                    FontVariation('wght', isToday ? 600 : 400),
-                  ],
+                  fontVariations: [FontVariation('wght', isToday ? 600 : 400)],
                 ),
               ),
               const SizedBox(width: 5),
@@ -214,7 +218,7 @@ class _PlanPageState extends State<PlanPage> {
             totals.calories == 0
                 ? '—'
                 : '${totals.calories.round()} cal · '
-                    '${totals.protein.round()}g',
+                      '${totals.protein.round()}g',
             style: TextStyle(
               fontFamily: t.bodyFamily,
               fontSize: 10.5,
@@ -281,11 +285,7 @@ class _PlanPageState extends State<PlanPage> {
 
         final card = _planCard(context, app, recipe, day, slot, active);
         return Draggable<_PlanDrag>(
-          data: _PlanDrag(
-            recipeId: recipe.id,
-            fromDate: day,
-            fromSlot: slot,
-          ),
+          data: _PlanDrag(recipeId: recipe.id, fromDate: day, fromSlot: slot),
           feedback: Material(
             color: Colors.transparent,
             child: SizedBox(width: 150, child: card),
@@ -505,10 +505,7 @@ class _PlanPageState extends State<PlanPage> {
         child: SizedBox(width: 200, child: card),
       ),
       childWhenDragging: Opacity(opacity: 0.3, child: card),
-      child: MouseRegion(
-        cursor: SystemMouseCursors.grab,
-        child: card,
-      ),
+      child: MouseRegion(cursor: SystemMouseCursors.grab, child: card),
     );
   }
 }

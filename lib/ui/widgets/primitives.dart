@@ -43,10 +43,10 @@ class Tag extends StatelessWidget {
       TagStyle.accent2 => (t.tagAccent2Bg, t.tagAccent2Fg, null),
       TagStyle.neutral => (t.tagNeutralBg, t.tagNeutralFg, null),
       TagStyle.outline => (
-          Colors.transparent,
-          t.accent,
-          Border.fromBorderSide(BorderSide(color: t.accent)),
-        ),
+        Colors.transparent,
+        t.accent,
+        Border.fromBorderSide(BorderSide(color: t.accent)),
+      ),
     };
 
     // `.tag` sits at 0.75 of the control radius on Nocturne; on Organic it is
@@ -69,13 +69,12 @@ class Tag extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: faded ? fg.withValues(alpha: 0.55) : fg,
-                  letterSpacing: 0.02 * 11,
-                  height: 1.35,
-                  decoration:
-                      struckThrough ? TextDecoration.lineThrough : null,
-                  decorationColor: fg.withValues(alpha: 0.7),
-                ),
+              color: faded ? fg.withValues(alpha: 0.55) : fg,
+              letterSpacing: 0.02 * 11,
+              height: 1.35,
+              decoration: struckThrough ? TextDecoration.lineThrough : null,
+              decorationColor: fg.withValues(alpha: 0.7),
+            ),
           ),
           if (trailing != null) ...[const SizedBox(width: 5), trailing!],
         ],
@@ -143,8 +142,8 @@ class _AppButtonState extends State<AppButton> {
           bg = _down
               ? t.accentRamp[6]
               : _hover
-                  ? t.accentRamp[5]
-                  : t.accent;
+              ? t.accentRamp[5]
+              : t.accent;
           fg = t.ground;
         } else {
           fg = t.accent;
@@ -152,23 +151,23 @@ class _AppButtonState extends State<AppButton> {
           bg = _down
               ? t.accent.withValues(alpha: 0.22)
               : _hover
-                  ? t.accent.withValues(alpha: 0.12)
-                  : Colors.transparent;
+              ? t.accent.withValues(alpha: 0.12)
+              : Colors.transparent;
         }
       case ButtonKind.secondary:
         border = Border.fromBorderSide(BorderSide(color: t.divider));
         bg = _down
             ? t.text.withValues(alpha: 0.14)
             : _hover
-                ? t.text.withValues(alpha: 0.07)
-                : Colors.transparent;
+            ? t.text.withValues(alpha: 0.07)
+            : Colors.transparent;
       case ButtonKind.ghost:
         fg = t.accent;
         bg = _down
             ? t.accent.withValues(alpha: 0.18)
             : _hover
-                ? t.accent.withValues(alpha: 0.10)
-                : Colors.transparent;
+            ? t.accent.withValues(alpha: 0.10)
+            : Colors.transparent;
     }
 
     return MouseRegion(
@@ -321,11 +320,11 @@ class HoverRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _Hoverable(
-        onTap: onTap,
-        borderRadius: borderRadius,
-        hoverOpacity: 0.04,
-        child: child,
-      );
+    onTap: onTap,
+    borderRadius: borderRadius,
+    hoverOpacity: 0.04,
+    child: child,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -426,7 +425,10 @@ class AppTextField extends StatelessWidget {
                   padding: const EdgeInsets.only(left: 11, right: 7),
                   child: Icon(icon, size: 16, color: t.textMuted),
                 ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 0,
+            minHeight: 0,
+          ),
           contentPadding: EdgeInsets.symmetric(
             horizontal: t.radiusControl > 100 ? 14 : 10,
             vertical: 8,
@@ -601,11 +603,8 @@ class RecipePhoto extends StatelessWidget {
     }
 
     return LayoutBuilder(
-      builder: (context, constraints) => _paint(
-        context,
-        t,
-        _decoded(context, constraints),
-      ),
+      builder: (context, constraints) =>
+          _paint(context, t, _decoded(context, constraints)),
     );
   }
 
@@ -660,16 +659,16 @@ class RecipePhoto extends StatelessWidget {
   Widget _treated(BuildContext context, AppTokens t, Widget image) {
     return switch (t.photoTreatment) {
       PhotoTreatment.lightenOntoGround => ColorFiltered(
-          colorFilter: ColorFilter.mode(t.ground, BlendMode.lighten),
+        colorFilter: ColorFilter.mode(t.ground, BlendMode.lighten),
+        child: image,
+      ),
+      PhotoTreatment.washed => Opacity(
+        opacity: 0.94,
+        child: ColorFiltered(
+          colorFilter: const ColorFilter.matrix(_washed),
           child: image,
         ),
-      PhotoTreatment.washed => Opacity(
-          opacity: 0.94,
-          child: ColorFiltered(
-            colorFilter: const ColorFilter.matrix(_washed),
-            child: image,
-          ),
-        ),
+      ),
     };
   }
 }
@@ -689,9 +688,7 @@ class _Placeholder extends StatelessWidget {
             ? t.accent.withValues(alpha: 0.12)
             : t.text.withValues(alpha: 0.04),
         border: hovering
-            ? Border.fromBorderSide(
-                BorderSide(color: t.accent, width: 1.5),
-              )
+            ? Border.fromBorderSide(BorderSide(color: t.accent, width: 1.5))
             : null,
       ),
       child: Center(

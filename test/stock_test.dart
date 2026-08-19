@@ -3,11 +3,7 @@ import 'package:recipe_book/data/models.dart';
 import 'package:recipe_book/domain/macros.dart';
 
 /// A pantry item with macros, so coverage is the only thing under test.
-PantryItem _item(
-  String name, {
-  bool inStock = true,
-  bool isStaple = false,
-}) =>
+PantryItem _item(String name, {bool inStock = true, bool isStaple = false}) =>
     PantryItem(
       id: 'p-$name',
       name: name,
@@ -18,14 +14,14 @@ PantryItem _item(
     );
 
 Ingredient _line(String name, String pantryItemId) => Ingredient(
-      id: 'i-$name',
-      componentId: 'c1',
-      name: name,
-      quantity: 100,
-      unit: 'g',
-      pantryItemId: pantryItemId,
-      order: 0,
-    );
+  id: 'i-$name',
+  componentId: 'c1',
+  name: name,
+  quantity: 100,
+  unit: 'g',
+  pantryItemId: pantryItemId,
+  order: 0,
+);
 
 void main() {
   group('running out of something', () {
@@ -103,8 +99,10 @@ void main() {
         assumeStaples: true,
       );
 
-      expect(coverage.of(_line('flour', 'p-flour')).coverage,
-          Coverage.outOfStock);
+      expect(
+        coverage.of(_line('flour', 'p-flour')).coverage,
+        Coverage.outOfStock,
+      );
     });
   });
 }

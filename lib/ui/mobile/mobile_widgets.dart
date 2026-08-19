@@ -276,10 +276,7 @@ Future<T?> showPhoneSheet<T>(
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              child: Text(title, style: Theme.of(context).textTheme.titleLarge),
             ),
             if (subtitle != null)
               Padding(
@@ -386,9 +383,7 @@ class PhoneFab extends StatelessWidget {
           // Nocturne's primary is an outline, so the FAB is a ringed surface;
           // Organic's is a fill, so the FAB fills.
           color: t.primaryButtonIsFilled ? t.accent : t.surface,
-          borderRadius: BorderRadius.circular(
-            t.radiusControl > 100 ? 999 : 16,
-          ),
+          borderRadius: BorderRadius.circular(t.radiusControl > 100 ? 999 : 16),
           border: t.primaryButtonIsFilled
               ? null
               : Border.fromBorderSide(BorderSide(color: t.accent)),
@@ -430,9 +425,7 @@ void phoneToast(BuildContext context, String message) {
 /// Opens a recipe on the phone as a full screen rather than in a column.
 void openMobileRecipe(BuildContext context, String recipeId, Widget page) {
   context.read<NavController>().openRecipe(recipeId);
-  Navigator.of(context)
-      .push(MaterialPageRoute(builder: (_) => page))
-      .then((_) {
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => page)).then((_) {
     if (context.mounted) context.read<NavController>().closeRecipe();
   });
 }

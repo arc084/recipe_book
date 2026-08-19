@@ -56,8 +56,9 @@ class _RecipeEditViewState extends State<RecipeEditView> {
     if (_draft.steps.length != _original.steps.length) n++;
     if (_draft.components.length != _original.components.length) n++;
     for (final line in _draft.ingredients) {
-      final was =
-          _original.ingredients.where((i) => i.id == line.id).firstOrNull;
+      final was = _original.ingredients
+          .where((i) => i.id == line.id)
+          .firstOrNull;
       if (was == null) continue;
       if (was.name != line.name ||
           was.quantity != line.quantity ||
@@ -238,12 +239,14 @@ class _RecipeEditViewState extends State<RecipeEditView> {
                 );
                 if (name == null || name.trim().isEmpty) return;
                 _change(() {
-                  _draft.components.add(RecipeComponent(
-                    id: newId(),
-                    recipeId: _draft.id,
-                    name: name.trim(),
-                    order: _draft.components.length,
-                  ));
+                  _draft.components.add(
+                    RecipeComponent(
+                      id: newId(),
+                      recipeId: _draft.id,
+                      name: name.trim(),
+                      order: _draft.components.length,
+                    ),
+                  );
                 });
               },
             ),
@@ -304,9 +307,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
 
   List<Widget> _reorderableLines(BuildContext context, RecipeComponent c) {
     final lines = _draft.ingredientsOf(c.id);
-    return [
-      for (final line in lines) _ingredientRow(context, line),
-    ];
+    return [for (final line in lines) _ingredientRow(context, line)];
   }
 
   Widget _ingredientRow(BuildContext context, Ingredient line) {
@@ -334,9 +335,8 @@ class _RecipeEditViewState extends State<RecipeEditView> {
                 value: formatAmount(line.quantity),
                 fontSize: 12.5,
                 hint: 'qty',
-                onChanged: (v) => _change(
-                  () => line.quantity = double.tryParse(v.trim()),
-                ),
+                onChanged: (v) =>
+                    _change(() => line.quantity = double.tryParse(v.trim())),
               ),
             ),
             SizedBox(
@@ -388,14 +388,16 @@ class _RecipeEditViewState extends State<RecipeEditView> {
       ),
       child: HoverRow(
         onTap: () => _change(() {
-          _draft.ingredients.add(Ingredient(
-            id: newId(),
-            componentId: c.id,
-            quantity: null,
-            unit: '',
-            name: '',
-            order: _draft.ingredients.length,
-          ));
+          _draft.ingredients.add(
+            Ingredient(
+              id: newId(),
+              componentId: c.id,
+              quantity: null,
+              unit: '',
+              name: '',
+              order: _draft.ingredients.length,
+            ),
+          );
         }),
         child: SizedBox(
           height: 32,
@@ -464,12 +466,14 @@ class _RecipeEditViewState extends State<RecipeEditView> {
                         fontSize: 11,
                         height: 22,
                         onPressed: () => _change(() {
-                          _draft.steps.add(RecipeStep(
-                            id: newId(),
-                            componentId: c.id,
-                            text: '',
-                            order: _draft.steps.length,
-                          ));
+                          _draft.steps.add(
+                            RecipeStep(
+                              id: newId(),
+                              componentId: c.id,
+                              text: '',
+                              order: _draft.steps.length,
+                            ),
+                          );
                         }),
                       ),
                     ],
@@ -617,8 +621,9 @@ class _InlineField extends StatefulWidget {
 }
 
 class _InlineFieldState extends State<_InlineField> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.value);
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.value,
+  );
 
   @override
   void dispose() {

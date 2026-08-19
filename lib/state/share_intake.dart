@@ -35,8 +35,9 @@ class ShareIntake {
     });
 
     try {
-      final initial =
-          await _channel.invokeMethod<String>('getInitialSharedText');
+      final initial = await _channel.invokeMethod<String>(
+        'getInitialSharedText',
+      );
       _offer(initial);
     } on MissingPluginException {
       // Running somewhere without the host side attached.

@@ -33,10 +33,7 @@ class _MobileSuggestionsPageState extends State<MobileSuggestionsPage> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final app = context.watch<AppState>();
-    final results = app.suggestions(
-      withIngredients: _ingredients,
-      sort: _sort,
-    );
+    final results = app.suggestions(withIngredients: _ingredients, sort: _sort);
 
     return Scaffold(
       backgroundColor: t.ground,
@@ -87,8 +84,11 @@ class _MobileSuggestionsPageState extends State<MobileSuggestionsPage> {
                             trailing: GestureDetector(
                               onTap: () =>
                                   setState(() => _ingredients.remove(ing)),
-                              child: Icon(Icons.close,
-                                  size: 12, color: t.tagAccentFg),
+                              child: Icon(
+                                Icons.close,
+                                size: 12,
+                                color: t.tagAccentFg,
+                              ),
                             ),
                           ),
                       ],
@@ -131,8 +131,13 @@ class _MobileSuggestionsPageState extends State<MobileSuggestionsPage> {
                   ),
                   const SizedBox(height: 10),
                   for (final row in results)
-                    _row(context, app, row.recipe.id, row.missing,
-                        row.missingNames),
+                    _row(
+                      context,
+                      app,
+                      row.recipe.id,
+                      row.missing,
+                      row.missingNames,
+                    ),
                   const SizedBox(height: 20),
                   SectionLabel('From the web', color: t.textFaint),
                   const SizedBox(height: 8),
@@ -140,8 +145,9 @@ class _MobileSuggestionsPageState extends State<MobileSuggestionsPage> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       borderRadius: t.brContainer,
-                      border:
-                          Border.fromBorderSide(BorderSide(color: t.divider)),
+                      border: Border.fromBorderSide(
+                        BorderSide(color: t.divider),
+                      ),
                     ),
                     child: Text(
                       'Web results appear here once a search runs, and stay '

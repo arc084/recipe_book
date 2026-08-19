@@ -29,11 +29,10 @@ abstract final class ImportFlow {
     final parsed = await _read(context, source);
     if (parsed == null || !context.mounted) return;
 
-    await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(
-        builder: (_) => _ReviewScreen(parsed: parsed),
-      ),
-    );
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => _ReviewScreen(parsed: parsed)));
   }
 
   /// Straight to step 2 with an address already in hand — the phone's share
@@ -41,9 +40,10 @@ abstract final class ImportFlow {
   static Future<void> startWithUrl(BuildContext context, String url) async {
     final parsed = await _read(context, _ImportSource(url: url));
     if (parsed == null || !context.mounted) return;
-    await Navigator.of(context, rootNavigator: true).push(
-      MaterialPageRoute(builder: (_) => _ReviewScreen(parsed: parsed)),
-    );
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(MaterialPageRoute(builder: (_) => _ReviewScreen(parsed: parsed)));
   }
 
   static Future<ParsedRecipe?> _read(
@@ -65,20 +65,24 @@ abstract final class ImportFlow {
 
       final parsed = RecipeParser.parse(body, url: source.url);
       if (parsed == null) {
-        messenger.showSnackBar(const SnackBar(
-          content: Text('Nothing on that page reads as a recipe.'),
-          behavior: SnackBarBehavior.floating,
-          width: 400,
-        ));
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Nothing on that page reads as a recipe.'),
+            behavior: SnackBarBehavior.floating,
+            width: 400,
+          ),
+        );
         return null;
       }
       return parsed;
     } catch (e) {
-      messenger.showSnackBar(SnackBar(
-        content: Text('Could not read that page. $e'),
-        behavior: SnackBarBehavior.floating,
-        width: 460,
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Could not read that page. $e'),
+          behavior: SnackBarBehavior.floating,
+          width: 460,
+        ),
+      );
       return null;
     }
   }
@@ -194,8 +198,9 @@ class _LinkDialogState extends State<_LinkDialog> {
               if (_clipboardUrl != null) ...[
                 HoverRow(
                   borderRadius: t.brContainer,
-                  onTap: () => Navigator.of(context)
-                      .pop(_ImportSource(url: _clipboardUrl)),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).pop(_ImportSource(url: _clipboardUrl)),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -258,8 +263,11 @@ class _LinkDialogState extends State<_LinkDialog> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.file_download_outlined,
-                        size: 16, color: t.textMuted),
+                    Icon(
+                      Icons.file_download_outlined,
+                      size: 16,
+                      color: t.textMuted,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -312,8 +320,7 @@ class _LinkDialogState extends State<_LinkDialog> {
                             final url = _controller.text.trim();
                             if (url.isEmpty) return;
                             setState(() => _busy = true);
-                            Navigator.of(context)
-                                .pop(_ImportSource(url: url));
+                            Navigator.of(context).pop(_ImportSource(url: url));
                           },
                   ),
                 ],
@@ -364,9 +371,9 @@ class _ReviewScreenState extends State<_ReviewScreen> {
             title: 'Check what was read',
             subtitle: narrow
                 ? 'This is the parse as it stands. Fixing a mangled line is '
-                    'desktop work — nothing is saved yet either way.'
+                      'desktop work — nothing is saved yet either way.'
                 : 'Every field is writable — fix a mangled quantity here, '
-                    'before anything is saved.',
+                      'before anything is saved.',
             onDiscard: () => Navigator.of(context).pop(),
           ),
           Expanded(
@@ -381,11 +388,7 @@ class _ReviewScreenState extends State<_ReviewScreen> {
                     // Title takes the full width on a phone; the two small
                     // numbers pair up on the row beneath it.
                     if (narrow) ...[
-                      _Field(
-                        label: 'Title',
-                        value: p.title,
-                        readOnly: true,
-                      ),
+                      _Field(label: 'Title', value: p.title, readOnly: true),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -486,8 +489,11 @@ class _ReviewScreenState extends State<_ReviewScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info_outline,
-                                size: 16, color: t.textMuted),
+                            Icon(
+                              Icons.info_outline,
+                              size: 16,
+                              color: t.textMuted,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -569,17 +575,15 @@ class _ReviewScreenState extends State<_ReviewScreen> {
             note: p.uncertainIngredients.isEmpty
                 ? 'Everything read cleanly.'
                 : '${p.uncertainIngredients.length} '
-                    '${p.uncertainIngredients.length == 1 ? 'line was' : 'lines were'}'
-                    ' hard to read: '
-                    '${p.uncertainIngredients.map((i) => p.ingredients[i].raw).join(' · ')}',
+                      '${p.uncertainIngredients.length == 1 ? 'line was' : 'lines were'}'
+                      ' hard to read: '
+                      '${p.uncertainIngredients.map((i) => p.ingredients[i].raw).join(' · ')}',
             highlight: p.uncertainIngredients.isNotEmpty,
             primaryLabel: 'Match to pantry',
             onPrimary: () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => _MatchScreen(
-                  parsed: p,
-                  mealTypeId: _mealTypeId,
-                ),
+                builder: (_) =>
+                    _MatchScreen(parsed: p, mealTypeId: _mealTypeId),
               ),
             ),
           ),
@@ -597,8 +601,7 @@ class _ReviewScreenState extends State<_ReviewScreen> {
 
     if (isNarrow(context)) {
       // Read-only on the phone: one line, no fixed columns to clip against.
-      final amount =
-          '${formatAmount(line.quantity)} ${line.unit}'.trim();
+      final amount = '${formatAmount(line.quantity)} ${line.unit}'.trim();
       return Container(
         decoration: BoxDecoration(
           border: Border(
@@ -782,7 +785,9 @@ class _MatchScreenState extends State<_MatchScreen> {
     final words = name.split(RegExp(r'\s+'));
     for (var i = 1; i < words.length; i++) {
       final w = words[i];
-      if (w.length > 2 && w[0] == w[0].toUpperCase() && w[0] != w[0].toLowerCase()) {
+      if (w.length > 2 &&
+          w[0] == w[0].toUpperCase() &&
+          w[0] != w[0].toLowerCase()) {
         return true;
       }
     }
@@ -795,8 +800,9 @@ class _MatchScreenState extends State<_MatchScreen> {
     final app = context.watch<AppState>();
 
     final linked = _matches.where((m) => m.kind == _MatchKind.linked).length;
-    final unmatched =
-        _matches.where((m) => m.kind == _MatchKind.unmatched).length;
+    final unmatched = _matches
+        .where((m) => m.kind == _MatchKind.unmatched)
+        .length;
 
     return Scaffold(
       backgroundColor: t.ground,
@@ -805,7 +811,8 @@ class _MatchScreenState extends State<_MatchScreen> {
           _StepHeader(
             step: 3,
             title: 'Match to your pantry',
-            subtitle: 'Linked ingredients inherit that item’s macros. Nothing '
+            subtitle:
+                'Linked ingredients inherit that item’s macros. Nothing '
                 'is saved until you press Save.',
             onDiscard: () => Navigator.of(context)
               ..pop()
@@ -854,7 +861,8 @@ class _MatchScreenState extends State<_MatchScreen> {
             ),
           ),
           _StepFooter(
-            note: '$linked linked · '
+            note:
+                '$linked linked · '
                 '${_matches.length - linked - unmatched} kept separate · '
                 '$unmatched saved recipe-only and flagged',
             primaryLabel: 'Save to library',
@@ -901,7 +909,7 @@ class _MatchScreenState extends State<_MatchScreen> {
                   match.line.quantity == null
                       ? match.line.unit
                       : '${formatAmount(match.line.quantity)} ${match.line.unit}'
-                          .trim(),
+                            .trim(),
                   style: TextStyle(
                     fontFamily: t.bodyFamily,
                     fontSize: 11,
@@ -932,10 +940,7 @@ class _MatchScreenState extends State<_MatchScreen> {
               ],
             ),
           ),
-          _MatchMenu(
-            match: match,
-            onChanged: () => setState(() {}),
-          ),
+          _MatchMenu(match: match, onChanged: () => setState(() {})),
         ],
       ),
     );
@@ -965,17 +970,20 @@ class _MatchScreenState extends State<_MatchScreen> {
 
     for (var i = 0; i < _matches.length; i++) {
       final match = _matches[i];
-      recipe.ingredients.add(Ingredient(
-        id: newId(),
-        componentId: component.id,
-        quantity: match.line.quantity,
-        unit: match.line.unit,
-        name: match.line.name,
-        pantryItemId:
-            match.kind == _MatchKind.linked ? match.pantryItemId : null,
-        isBranded: match.kind == _MatchKind.branded,
-        order: i,
-      ));
+      recipe.ingredients.add(
+        Ingredient(
+          id: newId(),
+          componentId: component.id,
+          quantity: match.line.quantity,
+          unit: match.line.unit,
+          name: match.line.name,
+          pantryItemId: match.kind == _MatchKind.linked
+              ? match.pantryItemId
+              : null,
+          isBranded: match.kind == _MatchKind.branded,
+          order: i,
+        ),
+      );
 
       // Remembering a match means teaching the pantry item another name.
       if (_remember &&
@@ -986,12 +994,14 @@ class _MatchScreenState extends State<_MatchScreen> {
     }
 
     for (var i = 0; i < p.steps.length; i++) {
-      recipe.steps.add(RecipeStep(
-        id: newId(),
-        componentId: component.id,
-        text: p.steps[i],
-        order: i,
-      ));
+      recipe.steps.add(
+        RecipeStep(
+          id: newId(),
+          componentId: component.id,
+          text: p.steps[i],
+          order: i,
+        ),
+      );
     }
 
     // Only this step commits.
@@ -1115,89 +1125,89 @@ class _StepHeader extends StatelessWidget {
               ? const EdgeInsets.fromLTRB(16, 12, 8, 14)
               : const EdgeInsets.fromLTRB(30, 22, 30, 18),
           child: Row(
-        children: [
-          Expanded(
-            child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  for (var i = 1; i <= 3; i++) ...[
-                    Container(
-                      width: 22,
-                      height: 22,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: i < step ? t.accent : Colors.transparent,
-                        border: Border.fromBorderSide(
-                          BorderSide(
-                            color: i <= step ? t.accent : t.divider,
-                          ),
-                        ),
-                      ),
-                      child: i < step
-                          ? Icon(Icons.check, size: 12, color: t.ground)
-                          : Text(
-                              '$i',
-                              style: TextStyle(
-                                fontFamily: t.bodyFamily,
-                                fontSize: 11,
-                                height: 1,
-                                color: i == step ? t.accent : t.textFaint,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        for (var i = 1; i <= 3; i++) ...[
+                          Container(
+                            width: 22,
+                            height: 22,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: i < step ? t.accent : Colors.transparent,
+                              border: Border.fromBorderSide(
+                                BorderSide(
+                                  color: i <= step ? t.accent : t.divider,
+                                ),
                               ),
                             ),
+                            child: i < step
+                                ? Icon(Icons.check, size: 12, color: t.ground)
+                                : Text(
+                                    '$i',
+                                    style: TextStyle(
+                                      fontFamily: t.bodyFamily,
+                                      fontSize: 11,
+                                      height: 1,
+                                      color: i == step ? t.accent : t.textFaint,
+                                    ),
+                                  ),
+                          ),
+                          if (i < 3)
+                            Container(
+                              width: narrow ? 14 : 26,
+                              height: 1,
+                              color: t.divider,
+                            ),
+                        ],
+                        SizedBox(width: narrow ? 10 : 14),
+                        Expanded(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: narrow
+                                ? Theme.of(context).textTheme.headlineSmall
+                                : Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                      ],
                     ),
-                    if (i < 3)
-                      Container(
-                        width: narrow ? 14 : 26,
-                        height: 1,
-                        color: t.divider,
-                      ),
-                  ],
-                  SizedBox(width: narrow ? 10 : 14),
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      // The phone has room for the sentence to breathe downward,
+                      // not sideways.
+                      maxLines: narrow ? 3 : 2,
                       overflow: TextOverflow.ellipsis,
-                      style: narrow
-                          ? Theme.of(context).textTheme.headlineSmall
-                          : Theme.of(context).textTheme.titleLarge,
+                      style: TextStyle(
+                        fontFamily: t.bodyFamily,
+                        fontSize: 12,
+                        height: 1.45,
+                        color: t.textMuted,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 5),
-              Text(
-                subtitle,
-                // The phone has room for the sentence to breathe downward,
-                // not sideways.
-                maxLines: narrow ? 3 : 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: t.bodyFamily,
-                  fontSize: 12,
-                  height: 1.45,
-                  color: t.textMuted,
+                  ],
                 ),
               ),
+              SizedBox(width: narrow ? 6 : 16),
+              // Discard at any point leaves the library untouched.
+              if (narrow)
+                AppIconButton(
+                  icon: Icons.close,
+                  size: 34,
+                  iconSize: 17,
+                  onPressed: onDiscard,
+                )
+              else
+                AppButton('Discard', onPressed: onDiscard),
             ],
-          ),
-          ),
-          SizedBox(width: narrow ? 6 : 16),
-          // Discard at any point leaves the library untouched.
-          if (narrow)
-            AppIconButton(
-              icon: Icons.close,
-              size: 34,
-              iconSize: 17,
-              onPressed: onDiscard,
-            )
-          else
-            AppButton('Discard', onPressed: onDiscard),
-        ],
           ),
         ),
       ),
@@ -1210,8 +1220,7 @@ class _StepHeader extends StatelessWidget {
 /// Step 2 is writable on the desktop and read-only on the phone — that is the
 /// spec, not a layout compromise: renaming and re-splitting a parsed line is
 /// desktop work.
-bool isNarrow(BuildContext context) =>
-    MediaQuery.sizeOf(context).width < 700;
+bool isNarrow(BuildContext context) => MediaQuery.sizeOf(context).width < 700;
 
 class _StepFooter extends StatelessWidget {
   const _StepFooter({
@@ -1243,30 +1252,30 @@ class _StepFooter extends StatelessWidget {
               ? const EdgeInsets.fromLTRB(16, 12, 16, 12)
               : const EdgeInsets.fromLTRB(30, 14, 30, 16),
           child: Row(
-        children: [
-          Icon(
-            highlight ? Icons.error_outline : Icons.info_outline,
-            size: 15,
-            color: highlight ? t.accent : t.textFaint,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              note,
-              style: TextStyle(
-                fontFamily: t.bodyFamily,
-                fontSize: 11.5,
-                color: highlight ? t.text : t.textMuted,
+            children: [
+              Icon(
+                highlight ? Icons.error_outline : Icons.info_outline,
+                size: 15,
+                color: highlight ? t.accent : t.textFaint,
               ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          AppButton(
-            primaryLabel,
-            kind: ButtonKind.primary,
-            onPressed: onPrimary,
-          ),
-        ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  note,
+                  style: TextStyle(
+                    fontFamily: t.bodyFamily,
+                    fontSize: 11.5,
+                    color: highlight ? t.text : t.textMuted,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              AppButton(
+                primaryLabel,
+                kind: ButtonKind.primary,
+                onPressed: onPrimary,
+              ),
+            ],
           ),
         ),
       ),
@@ -1345,8 +1354,10 @@ class _FieldState extends State<_Field> {
               fontSize: 13,
               color: t.textFaint,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 4,
+              vertical: 8,
+            ),
             border: const UnderlineInputBorder(
               borderSide: BorderSide(color: Colors.transparent),
             ),

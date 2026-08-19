@@ -38,8 +38,9 @@ Future<void> main() async {
       WindowOptions(
         // The design canvas, and resizable from there.
         size: kMobilePreview ? const Size(428, 908) : const Size(1180, 760),
-        minimumSize:
-            kMobilePreview ? const Size(360, 640) : const Size(940, 600),
+        minimumSize: kMobilePreview
+            ? const Size(360, 640)
+            : const Size(940, 600),
         center: true,
         titleBarStyle: TitleBarStyle.hidden,
         windowButtonVisibility: false,

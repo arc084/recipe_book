@@ -20,13 +20,17 @@ void main() {
       );
     });
 
-    test('keeps the query string, which carries the recipe id on some sites',
-        () {
-      expect(
-        ShareIntake.extractUrl('Look at this https://example.com/r?id=42&x=1'),
-        'https://example.com/r?id=42&x=1',
-      );
-    });
+    test(
+      'keeps the query string, which carries the recipe id on some sites',
+      () {
+        expect(
+          ShareIntake.extractUrl(
+            'Look at this https://example.com/r?id=42&x=1',
+          ),
+          'https://example.com/r?id=42&x=1',
+        );
+      },
+    );
 
     test('drops sentence punctuation that is not part of the address', () {
       expect(

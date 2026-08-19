@@ -68,8 +68,12 @@ void main() {
       basil = PantryItem(id: 'basil', name: 'basil');
 
       recipe = Recipe(id: 'r', title: 'Test', mealTypeId: 'm', servings: 2);
-      final component =
-          RecipeComponent(id: 'c', recipeId: 'r', name: 'All', order: 0);
+      final component = RecipeComponent(
+        id: 'c',
+        recipeId: 'r',
+        name: 'All',
+        order: 0,
+      );
       recipe.components.add(component);
     });
 
@@ -79,16 +83,15 @@ void main() {
       String name, {
       String? link,
       int order = 0,
-    }) =>
-        Ingredient(
-          id: 'i$order$name',
-          componentId: 'c',
-          quantity: qty,
-          unit: unit,
-          name: name,
-          pantryItemId: link,
-          order: order,
-        );
+    }) => Ingredient(
+      id: 'i$order$name',
+      componentId: 'c',
+      quantity: qty,
+      unit: unit,
+      name: name,
+      pantryItemId: link,
+      order: order,
+    );
 
     test('scales a mass amount against a per-100 g basis', () {
       recipe.ingredients.add(line(200, 'g', 'chicken', link: 'chicken'));
@@ -99,8 +102,7 @@ void main() {
       expect(totals.isComplete, isTrue);
     });
 
-    test('bridges a count to a mass through the item’s second measurement',
-        () {
+    test('bridges a count to a mass through the item’s second measurement', () {
       // 2 cutlets, where the item says one cutlet is 150 g.
       recipe.ingredients.add(line(2, '', 'chicken cutlets', link: 'chicken'));
       final totals = MacroEngine([chicken]).forRecipe(recipe);
@@ -117,20 +119,22 @@ void main() {
       expect(totals.macros.calories, closeTo(238.7, 1.0));
     });
 
-    test('flags an ingredient with no macros instead of counting it as zero',
-        () {
-      recipe.ingredients
-        ..add(line(200, 'g', 'chicken', link: 'chicken', order: 0))
-        ..add(line(null, 'handful', 'basil', link: 'basil', order: 1));
+    test(
+      'flags an ingredient with no macros instead of counting it as zero',
+      () {
+        recipe.ingredients
+          ..add(line(200, 'g', 'chicken', link: 'chicken', order: 0))
+          ..add(line(null, 'handful', 'basil', link: 'basil', order: 1));
 
-      final totals = MacroEngine([chicken, basil]).forRecipe(recipe);
+        final totals = MacroEngine([chicken, basil]).forRecipe(recipe);
 
-      expect(totals.isComplete, isFalse);
-      expect(totals.gaps, hasLength(1));
-      expect(totals.gaps.single.gap, LineGap.noMacros);
-      // The counted line still contributes in full.
-      expect(totals.macros.calories, closeTo(330, 0.001));
-    });
+        expect(totals.isComplete, isFalse);
+        expect(totals.gaps, hasLength(1));
+        expect(totals.gaps.single.gap, LineGap.noMacros);
+        // The counted line still contributes in full.
+        expect(totals.macros.calories, closeTo(330, 0.001));
+      },
+    );
 
     test('flags a line that is not linked to a pantry item at all', () {
       recipe.ingredients.add(line(100, 'g', 'panko breadcrumbs'));
@@ -148,8 +152,7 @@ void main() {
       expect(totals.isEstimated, isTrue);
     });
 
-    test('scales to a different serving count without touching the recipe',
-        () {
+    test('scales to a different serving count without touching the recipe', () {
       recipe.ingredients.add(line(200, 'g', 'chicken', link: 'chicken'));
       final engine = MacroEngine([chicken]);
 
@@ -171,36 +174,45 @@ void main() {
       final salt = PantryItem(id: 's', name: 'salt', isStaple: true);
       final tomatoes = PantryItem(id: 't', name: 'canned tomatoes');
 
-      final recipe =
-          Recipe(id: 'r', title: 'Test', mealTypeId: 'm', servings: 2);
-      recipe.components
-          .add(RecipeComponent(id: 'c', recipeId: 'r', name: 'All', order: 0));
+      final recipe = Recipe(
+        id: 'r',
+        title: 'Test',
+        mealTypeId: 'm',
+        servings: 2,
+      );
+      recipe.components.add(
+        RecipeComponent(id: 'c', recipeId: 'r', name: 'All', order: 0),
+      );
       recipe.ingredients.addAll([
+        Ingredient(id: '1', componentId: 'c', unit: '', name: 'salt', order: 0),
         Ingredient(
-            id: '1', componentId: 'c', unit: '', name: 'salt', order: 0),
+          id: '2',
+          componentId: 'c',
+          unit: 'g',
+          quantity: 400,
+          name: 'canned tomatoes',
+          order: 1,
+        ),
         Ingredient(
-            id: '2',
-            componentId: 'c',
-            unit: 'g',
-            quantity: 400,
-            name: 'canned tomatoes',
-            order: 1),
+          id: '3',
+          componentId: 'c',
+          unit: 'g',
+          quantity: 100,
+          name: 'panko breadcrumbs',
+          order: 2,
+        ),
         Ingredient(
-            id: '3',
-            componentId: 'c',
-            unit: 'g',
-            quantity: 100,
-            name: 'panko breadcrumbs',
-            order: 2),
-        Ingredient(
-            id: '4', componentId: 'c', unit: '', name: 'lemons', order: 3),
+          id: '4',
+          componentId: 'c',
+          unit: '',
+          name: 'lemons',
+          order: 3,
+        ),
       ]);
 
       final coverage = PantryCoverage(
         pantry: [salt, tomatoes],
-        groceries: [
-          GroceryItem(id: 'g', name: 'lemons', aisleId: 'a'),
-        ],
+        groceries: [GroceryItem(id: 'g', name: 'lemons', aisleId: 'a')],
         assumeStaples: true,
       );
 
@@ -210,22 +222,28 @@ void main() {
       // so they count as missing alongside the panko.
       expect(summary.have, 2);
       expect(summary.total, 4);
-      expect(
-        summary.missing.map((c) => c.ingredient.name).toList(),
-        ['panko breadcrumbs', 'lemons'],
-      );
+      expect(summary.missing.map((c) => c.ingredient.name).toList(), [
+        'panko breadcrumbs',
+        'lemons',
+      ]);
       // But only the panko still needs buying — the lemons are already on the
       // list, so adding the missing items must not add them twice.
-      expect(summary.toBuy.map((c) => c.ingredient.name).toList(),
-          ['panko breadcrumbs']);
+      expect(summary.toBuy.map((c) => c.ingredient.name).toList(), [
+        'panko breadcrumbs',
+      ]);
     });
 
     test('counts staples when the user turns the assumption off', () {
       final salt = PantryItem(id: 's', name: 'salt', isStaple: true);
-      final recipe =
-          Recipe(id: 'r', title: 'Test', mealTypeId: 'm', servings: 2);
-      recipe.components
-          .add(RecipeComponent(id: 'c', recipeId: 'r', name: 'All', order: 0));
+      final recipe = Recipe(
+        id: 'r',
+        title: 'Test',
+        mealTypeId: 'm',
+        servings: 2,
+      );
+      recipe.components.add(
+        RecipeComponent(id: 'c', recipeId: 'r', name: 'All', order: 0),
+      );
       recipe.ingredients.add(
         Ingredient(id: '1', componentId: 'c', unit: '', name: 'salt', order: 0),
       );
@@ -237,15 +255,18 @@ void main() {
       );
       // Still in the pantry — turning the assumption off does not make an item
       // the user owns go missing.
-      expect(coverage.of(recipe.ingredients.first).coverage,
-          Coverage.inPantry);
+      expect(coverage.of(recipe.ingredients.first).coverage, Coverage.inPantry);
     });
   });
 
   group('continuous step numbering', () {
     test('runs across components in component order', () {
-      final recipe =
-          Recipe(id: 'r', title: 'Test', mealTypeId: 'm', servings: 2);
+      final recipe = Recipe(
+        id: 'r',
+        title: 'Test',
+        mealTypeId: 'm',
+        servings: 2,
+      );
       recipe.components.addAll([
         RecipeComponent(id: 'c1', recipeId: 'r', name: 'First', order: 0),
         RecipeComponent(id: 'c2', recipeId: 'r', name: 'Second', order: 1),
@@ -256,10 +277,11 @@ void main() {
         RecipeStep(id: 's2', componentId: 'c1', text: 'second', order: 1),
       ]);
 
-      expect(
-        recipe.orderedSteps.map((s) => s.text).toList(),
-        ['first', 'second', 'third'],
-      );
+      expect(recipe.orderedSteps.map((s) => s.text).toList(), [
+        'first',
+        'second',
+        'third',
+      ]);
     });
   });
 
@@ -272,10 +294,14 @@ void main() {
     });
 
     test('reads mixed numbers and unicode fractions', () {
-      expect(RecipeParser.parseIngredientLine('1 1/2 cups flour').quantity,
-          closeTo(1.5, 0.001));
-      expect(RecipeParser.parseIngredientLine('½ tsp salt').quantity,
-          closeTo(0.5, 0.001));
+      expect(
+        RecipeParser.parseIngredientLine('1 1/2 cups flour').quantity,
+        closeTo(1.5, 0.001),
+      );
+      expect(
+        RecipeParser.parseIngredientLine('½ tsp salt').quantity,
+        closeTo(0.5, 0.001),
+      );
     });
 
     test('leaves an unrecognised unit as part of the name', () {

@@ -335,10 +335,10 @@ class _MealTabState extends State<_MealTab> {
     final fg = widget.selected
         ? t.accent
         : widget.muted
-            ? t.textFaint
-            : _hover
-                ? t.text
-                : t.textSecondary;
+        ? t.textFaint
+        : _hover
+        ? t.text
+        : t.textSecondary;
 
     return Padding(
       padding: const EdgeInsets.only(right: 22),
@@ -501,8 +501,7 @@ Future<String?> promptForText(
                   AppButton(
                     confirmLabel,
                     kind: ButtonKind.primary,
-                    onPressed: () =>
-                        Navigator.of(context).pop(controller.text),
+                    onPressed: () => Navigator.of(context).pop(controller.text),
                   ),
                 ],
               ),

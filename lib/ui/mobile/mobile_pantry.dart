@@ -109,7 +109,8 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
-              for (final group in PantryGroup.values) _group(context, app, group),
+              for (final group in PantryGroup.values)
+                _group(context, app, group),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -178,9 +179,7 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
               Wrap(
                 spacing: 7,
                 runSpacing: 7,
-                children: [
-                  for (final item in items) _chip(context, item),
-                ],
+                children: [for (final item in items) _chip(context, item)],
               ),
             ],
           ),
@@ -194,8 +193,8 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
     final fg = !item.inStock
         ? t.accent
         : item.brandLabel != null
-            ? t.tagAccentFg
-            : t.tagNeutralFg;
+        ? t.tagAccentFg
+        : t.tagNeutralFg;
 
     final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
@@ -218,8 +217,7 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
               fontSize: 13,
               // Run out reads as struck through here too.
               color: item.inStock ? fg : fg.withValues(alpha: 0.6),
-              decoration:
-                  item.inStock ? null : TextDecoration.lineThrough,
+              decoration: item.inStock ? null : TextDecoration.lineThrough,
               decorationColor: fg,
             ),
           ),
@@ -321,7 +319,11 @@ class MobilePantryItemPage extends StatelessWidget {
               title: item.name,
               actions: [
                 IconButton(
-                  icon: Icon(Icons.more_horiz, size: 21, color: t.textSecondary),
+                  icon: Icon(
+                    Icons.more_horiz,
+                    size: 21,
+                    color: t.textSecondary,
+                  ),
                   onPressed: () => showPantryItemMenu(context, item),
                 ),
               ],
@@ -371,8 +373,11 @@ class MobilePantryItemPage extends StatelessWidget {
                           height: 44,
                           fontSize: 14,
                           onPressed: () {
-                            app.addGrocery(item.name,
-                                source: 'Pantry', pantryItemId: item.id);
+                            app.addGrocery(
+                              item.name,
+                              source: 'Pantry',
+                              pantryItemId: item.id,
+                            );
                             phoneToast(context, '${item.name} added');
                           },
                         ),
@@ -384,8 +389,7 @@ class MobilePantryItemPage extends StatelessWidget {
                           kind: ButtonKind.primary,
                           height: 44,
                           fontSize: 14,
-                          onPressed: () =>
-                              EditMacrosDialog.open(context, item),
+                          onPressed: () => EditMacrosDialog.open(context, item),
                         ),
                       ),
                     ],
@@ -397,8 +401,9 @@ class MobilePantryItemPage extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: t.accent.withValues(alpha: 0.08),
                         borderRadius: t.brContainer,
-                        border:
-                            Border.fromBorderSide(BorderSide(color: t.accent)),
+                        border: Border.fromBorderSide(
+                          BorderSide(color: t.accent),
+                        ),
                       ),
                       child: Text(
                         'No macros yet. Every recipe using ${item.name} flags '
@@ -437,7 +442,7 @@ class MobilePantryItemPage extends StatelessWidget {
                         (value: '${item.calories!.round()}', label: 'cal'),
                         (
                           value: '${item.protein?.round() ?? 0}g',
-                          label: 'protein'
+                          label: 'protein',
                         ),
                         (value: '${item.fat?.round() ?? 0}g', label: 'fat'),
                         (value: '${item.carbs?.round() ?? 0}g', label: 'carbs'),

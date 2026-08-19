@@ -94,14 +94,16 @@ class _GroceriesPageState extends State<GroceriesPage> {
                             final n = app.clearChecked();
                             ScaffoldMessenger.of(context)
                               ..clearSnackBars()
-                              ..showSnackBar(SnackBar(
-                                content: Text(
-                                  '$n cleared and put in the pantry',
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '$n cleared and put in the pantry',
+                                  ),
+                                  backgroundColor: t.surface,
+                                  behavior: SnackBarBehavior.floating,
+                                  width: 340,
                                 ),
-                                backgroundColor: t.surface,
-                                behavior: SnackBarBehavior.floating,
-                                width: 340,
-                              ));
+                              );
                           },
                   ),
                 ],
@@ -177,14 +179,13 @@ class _GroceriesPageState extends State<GroceriesPage> {
 
   Widget _aisle(BuildContext context, AppState app, Aisle aisle) {
     final t = context.tokens;
-    final items = app.library.groceries
-        .where((g) => g.aisleId == aisle.id)
-        .toList()
-      // Checked items drop to the bottom of their aisle.
-      ..sort((a, b) {
-        if (a.checked != b.checked) return a.checked ? 1 : -1;
-        return 0;
-      });
+    final items =
+        app.library.groceries.where((g) => g.aisleId == aisle.id).toList()
+          // Checked items drop to the bottom of their aisle.
+          ..sort((a, b) {
+            if (a.checked != b.checked) return a.checked ? 1 : -1;
+            return 0;
+          });
 
     final open = items.where((i) => !i.checked).length;
 
@@ -285,8 +286,7 @@ class _GroceriesPageState extends State<GroceriesPage> {
                   child: _editing == item.id
                       ? _renameField(context, app, item)
                       : GestureDetector(
-                          onDoubleTap: () =>
-                              setState(() => _editing = item.id),
+                          onDoubleTap: () => setState(() => _editing = item.id),
                           child: Text(
                             item.name,
                             overflow: TextOverflow.ellipsis,
@@ -338,10 +338,7 @@ class _GroceriesPageState extends State<GroceriesPage> {
             width: 320,
             child: Panel(
               elevation: PanelElevation.lg,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 13,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
               child: Text(
                 item.name,
                 style: TextStyle(
@@ -548,11 +545,7 @@ class _GroceriesPageState extends State<GroceriesPage> {
                 ),
                 borderRadius: t.brSmall,
               ),
-              child: Icon(
-                Icons.restaurant,
-                size: 15,
-                color: t.textMuted,
-              ),
+              child: Icon(Icons.restaurant, size: 15, color: t.textMuted),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -611,9 +604,7 @@ class _Checkbox extends StatelessWidget {
               BorderSide(color: checked ? t.accent : t.divider, width: 1.5),
             ),
           ),
-          child: checked
-              ? Icon(Icons.check, size: 11, color: t.ground)
-              : null,
+          child: checked ? Icon(Icons.check, size: 11, color: t.ground) : null,
         ),
       ),
     );

@@ -45,13 +45,13 @@ Future<bool> confirmRemovePantryItem(
               Text(
                 usedIn.isEmpty
                     ? 'Its macros and other known names are deleted. Nothing '
-                        'uses it, so no recipe changes.'
+                          'uses it, so no recipe changes.'
                     : 'Its macros and other known names are deleted. '
-                        '${usedIn.length} '
-                        '${usedIn.length == 1 ? 'recipe keeps its' : 'recipes keep their'} '
-                        'ingredient line but ${usedIn.length == 1 ? 'loses' : 'lose'} '
-                        'the numbers behind it, and will be flagged rather '
-                        'than counted as zero.',
+                          '${usedIn.length} '
+                          '${usedIn.length == 1 ? 'recipe keeps its' : 'recipes keep their'} '
+                          'ingredient line but ${usedIn.length == 1 ? 'loses' : 'lose'} '
+                          'the numbers behind it, and will be flagged rather '
+                          'than counted as zero.',
                 style: TextStyle(
                   fontFamily: t.bodyFamily,
                   fontSize: 13,
@@ -67,8 +67,10 @@ Future<bool> confirmRemovePantryItem(
                   children: [
                     for (final row in usedIn.take(6)) Tag(row.recipe.title),
                     if (usedIn.length > 6)
-                      Tag('+${usedIn.length - 6} more',
-                          style: TagStyle.outline),
+                      Tag(
+                        '+${usedIn.length - 6} more',
+                        style: TagStyle.outline,
+                      ),
                   ],
                 ),
               ],

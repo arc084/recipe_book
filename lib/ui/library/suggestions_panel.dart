@@ -37,10 +37,7 @@ class _SuggestionsPanelState extends State<SuggestionsPanel> {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final app = context.watch<AppState>();
-    final results = app.suggestions(
-      withIngredients: _ingredients,
-      sort: _sort,
-    );
+    final results = app.suggestions(withIngredients: _ingredients, sort: _sort);
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -169,9 +166,7 @@ class _SuggestionsPanelState extends State<SuggestionsPanel> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     borderRadius: t.brContainer,
-                    border: Border.fromBorderSide(
-                      BorderSide(color: t.divider),
-                    ),
+                    border: Border.fromBorderSide(BorderSide(color: t.divider)),
                   ),
                   child: Text(
                     'Web results appear here once a search runs, and stay '
@@ -297,7 +292,7 @@ class _SuggestionsPanelState extends State<SuggestionsPanel> {
                       row.missing == 0
                           ? 'Everything in your pantry'
                           : '${row.missing} missing · '
-                              '${row.missingNames.join(', ')}',
+                                '${row.missingNames.join(', ')}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -441,8 +436,8 @@ class _SegOptionState extends State<_SegOption> {
           color: widget.selected
               ? selectedBg
               : _hover
-                  ? t.text.withValues(alpha: 0.07)
-                  : Colors.transparent,
+              ? t.text.withValues(alpha: 0.07)
+              : Colors.transparent,
           child: Text(
             widget.label,
             style: TextStyle(

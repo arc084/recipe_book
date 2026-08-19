@@ -142,11 +142,11 @@ class _MobileLibraryPageState extends State<MobileLibraryPage> {
                       padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        mainAxisExtent: 104 + 92,
-                      ),
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            mainAxisExtent: 104 + 92,
+                          ),
                       itemCount: recipes.length,
                       itemBuilder: (context, i) =>
                           _PhoneCard(recipe: recipes[i]),
@@ -186,7 +186,8 @@ class _MobileLibraryPageState extends State<MobileLibraryPage> {
             SheetRow(
               icon: Icons.content_paste,
               title: 'Use the link on your clipboard',
-              detail: 'Read when you tap — you check the page before '
+              detail:
+                  'Read when you tap — you check the page before '
                   'anything is saved',
               accent: true,
               onTap: () async {
@@ -232,12 +233,14 @@ class _MobileLibraryPageState extends State<MobileLibraryPage> {
       mealTypeId: (_mealTypeId ?? app.mealTypes.first.id),
       servings: 4,
     );
-    recipe.components.add(RecipeComponent(
-      id: newId(),
-      recipeId: recipe.id,
-      name: 'Ingredients',
-      order: 0,
-    ));
+    recipe.components.add(
+      RecipeComponent(
+        id: newId(),
+        recipeId: recipe.id,
+        name: 'Ingredients',
+        order: 0,
+      ),
+    );
     app.saveRecipe(recipe);
     Navigator.of(context).push(
       MaterialPageRoute(

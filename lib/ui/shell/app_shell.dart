@@ -33,10 +33,7 @@ class AppShell extends StatelessWidget {
               children: [
                 const _Sidebar(),
                 Expanded(
-                  child: ColoredBox(
-                    color: t.ground,
-                    child: _content(nav),
-                  ),
+                  child: ColoredBox(color: t.ground, child: _content(nav)),
                 ),
               ],
             ),
@@ -93,10 +90,7 @@ class _TitleBar extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            _WindowButton(
-              icon: Icons.remove,
-              onTap: windowManager.minimize,
-            ),
+            _WindowButton(icon: Icons.remove, onTap: windowManager.minimize),
             _WindowButton(
               icon: Icons.crop_square_outlined,
               iconSize: 11,
@@ -152,8 +146,8 @@ class _WindowButtonState extends State<_WindowButton> {
           height: 34,
           color: _hover
               ? (widget.danger
-                  ? const Color(0xFFC42B1C)
-                  : t.text.withValues(alpha: 0.08))
+                    ? const Color(0xFFC42B1C)
+                    : t.text.withValues(alpha: 0.08))
               : Colors.transparent,
           child: Icon(
             widget.icon,
@@ -301,8 +295,8 @@ class _NavItemState extends State<_NavItem> {
               color: widget.selected
                   ? t.accent.withValues(alpha: 0.14)
                   : _hover
-                      ? t.text.withValues(alpha: 0.05)
-                      : Colors.transparent,
+                  ? t.text.withValues(alpha: 0.05)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(
                 t.radiusControl > 100 ? 999 : t.radiusContainer,
               ),

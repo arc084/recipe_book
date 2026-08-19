@@ -84,7 +84,7 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
                 missing.isEmpty
                     ? 'Nothing missing this week'
                     : 'Add ${missing.length} missing '
-                        '${missing.length == 1 ? 'item' : 'items'} → groceries',
+                          '${missing.length == 1 ? 'item' : 'items'} → groceries',
                 kind: ButtonKind.primary,
                 height: 46,
                 fontSize: 14,
@@ -139,8 +139,8 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
                 color: selected
                     ? t.accent
                     : isToday
-                        ? t.textStrong
-                        : t.textSecondary,
+                    ? t.textStrong
+                    : t.textSecondary,
               ),
             ),
           ],
@@ -258,9 +258,11 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
 
     // Which meal type this slot corresponds to, matched by name.
     final slotType = app.mealTypes
-        .where((m) => m.name.toLowerCase().startsWith(
-              slot.label.toLowerCase().replaceAll('snack', 'snack'),
-            ))
+        .where(
+          (m) => m.name.toLowerCase().startsWith(
+            slot.label.toLowerCase().replaceAll('snack', 'snack'),
+          ),
+        )
         .firstOrNull;
 
     final alreadyThisWeek = <String, String>{};
@@ -289,9 +291,11 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
 
     await showPhoneSheet<void>(
       context,
-      title: 'Plan ${DateFormat('EEEE').format(_day)} '
+      title:
+          'Plan ${DateFormat('EEEE').format(_day)} '
           '${slot.label.toLowerCase()}',
-      subtitle: '${DateFormat('EEE d MMM').format(_day)} · '
+      subtitle:
+          '${DateFormat('EEE d MMM').format(_day)} · '
           '${app.dayTotals(_day).calories.round()} cal · '
           '${app.dayTotals(_day).protein.round()}g planned so far',
       builder: (sheetContext) => ListView(
@@ -300,12 +304,26 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
           if (filedHere.isNotEmpty)
             _sheetHeading(context, 'Filed as ${slot.label.toLowerCase()}'),
           for (final r in filedHere)
-            _option(context, sheetContext, app, cov, r,
-                alreadyThisWeek[r.id], slot),
+            _option(
+              context,
+              sheetContext,
+              app,
+              cov,
+              r,
+              alreadyThisWeek[r.id],
+              slot,
+            ),
           if (cookableNow.isNotEmpty) _sheetHeading(context, 'Cook now'),
           for (final r in cookableNow.take(8))
-            _option(context, sheetContext, app, cov, r,
-                alreadyThisWeek[r.id], slot),
+            _option(
+              context,
+              sheetContext,
+              app,
+              cov,
+              r,
+              alreadyThisWeek[r.id],
+              slot,
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
             child: Text(
@@ -328,9 +346,9 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
   }
 
   Widget _sheetHeading(BuildContext context, String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
-        child: SectionLabel(text),
-      );
+    padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+    child: SectionLabel(text),
+  );
 
   Widget _option(
     BuildContext context,

@@ -318,21 +318,21 @@ class _PantryPageState extends State<PantryPage> {
       style: !item.inStock
           ? TagStyle.outline
           : item.brandLabel != null
-              ? TagStyle.accent
-              : selected
-                  ? TagStyle.outline
-                  : TagStyle.neutral,
+          ? TagStyle.accent
+          : selected
+          ? TagStyle.outline
+          : TagStyle.neutral,
       trailing: item.hasMacros
           ? (item.brandLabel != null
-              ? Text(
-                  _brandShort(item.brandLabel!),
-                  style: TextStyle(
-                    fontFamily: t.bodyFamily,
-                    fontSize: 9.5,
-                    color: t.tagAccentFg.withValues(alpha: 0.7),
-                  ),
-                )
-              : null)
+                ? Text(
+                    _brandShort(item.brandLabel!),
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 9.5,
+                      color: t.tagAccentFg.withValues(alpha: 0.7),
+                    ),
+                  )
+                : null)
           // A ◦ on a chip means no macros yet.
           : Container(
               width: 7,
@@ -355,8 +355,7 @@ class _PantryPageState extends State<PantryPage> {
       // Right-click is the desktop way at both of these without leaving the
       // group you are looking at.
       child: GestureDetector(
-        onSecondaryTapDown: (d) =>
-            _chipMenu(context, item, d.globalPosition),
+        onSecondaryTapDown: (d) => _chipMenu(context, item, d.globalPosition),
         child: chip,
       ),
     );
@@ -496,8 +495,9 @@ class _PantryPageState extends State<PantryPage> {
                             Flexible(
                               child: Text(
                                 item.name,
-                                style:
-                                    Theme.of(context).textTheme.headlineSmall,
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.headlineSmall,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -556,12 +556,14 @@ class _PantryPageState extends State<PantryPage> {
                       );
                       ScaffoldMessenger.of(context)
                         ..clearSnackBars()
-                        ..showSnackBar(SnackBar(
-                          content: Text('${item.name} added to groceries'),
-                          backgroundColor: t.surface,
-                          behavior: SnackBarBehavior.floating,
-                          width: 320,
-                        ));
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text('${item.name} added to groceries'),
+                            backgroundColor: t.surface,
+                            behavior: SnackBarBehavior.floating,
+                            width: 320,
+                          ),
+                        );
                     },
                   ),
                   const SizedBox(width: 8),
@@ -641,7 +643,7 @@ class _PantryPageState extends State<PantryPage> {
     final serving = item.servingAmount == null
         ? null
         : '${item.servingAmount!.round()} ${item.servingUnit}'
-            '${item.altAmount == null ? '' : ' (${item.altAmount!.round()} ${item.altUnit})'}';
+              '${item.altAmount == null ? '' : ' (${item.altAmount!.round()} ${item.altUnit})'}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -880,8 +882,7 @@ class _PantryPageState extends State<PantryPage> {
         border: divided ? Border(top: BorderSide(color: t.divider)) : null,
       ),
       child: HoverRow(
-        onTap: () =>
-            context.read<NavController>().openRecipe(row.recipe.id),
+        onTap: () => context.read<NavController>().openRecipe(row.recipe.id),
         child: SizedBox(
           height: 40,
           child: Padding(
@@ -917,7 +918,7 @@ class _PantryPageState extends State<PantryPage> {
                     row.line.quantity == null
                         ? row.line.unit
                         : '${row.line.quantity!.round()} ${row.line.unit}'
-                            .trim(),
+                              .trim(),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontFamily: t.bodyFamily,
