@@ -87,11 +87,15 @@ class SyncService extends ChangeNotifier implements SyncHost {
   Future<void> onIncoming(
     LibraryDatabase l,
     PantryDatabase p,
-    ConflictPolicy policy,
     String fromDeviceId,
   ) async {
     _incomingFrom = fromDeviceId;
-    await _mergeIn(l, p, policy: policy);
+    // This runs with nobody in front of it — the phone may be in a pocket — so
+    // it must never park a question here, where it would be unreachable. Take
+    // everything uncontested and keep this device's copy on any tie; the
+    // device that started the session has a user who can answer, and their
+    // answer arrives re-stamped on the next exchange.
+    await _mergeIn(l, p, deferTiesToLocal: true);
     // Both sides took part, so both sides record it. Without this the device
     // that was synced *to* reads "never exchanged" no matter how many times it
     // has been, and its watermarks never advance — so it would keep re-asking
@@ -106,6 +110,10 @@ class SyncService extends ChangeNotifier implements SyncHost {
   /// Which device the request being handled came from, so the exchange can be
   /// recorded against it.
   String? _incomingFrom;
+
+  /// Ties this device kept its own copy of because nobody was here to ask.
+  /// Reported back so the initiator knows the peer did not fully converge.
+  int deferredTies = 0;
 
   @override
   Future<List<int>?> photoBytes(String hash) => _app.photoBytesByHash(hash);
@@ -234,26 +242,25 @@ class SyncService extends ChangeNotifier implements SyncHost {
         peer: peer,
         library: _app.library,
         pantry: _app.pantry,
-        policy: _app.settings.conflictPolicy,
       );
 
-      // Resolving by "newest" is only meaningful if the two clocks agree about
-      // what "now" is. Say so rather than silently picking a winner by a
-      // timestamp that is measuring something else.
+      // The newer copy wins, which only means anything if the two clocks agree
+      // about what "now" is. Past the tolerance they do not, so refuse rather
+      // than silently pick a winner by a timestamp measuring something else —
+      // a merge resolved on a bad clock is worse than one that did not happen.
       final skew = exchange.peerClock.difference(DateTime.now().toUtc()).abs();
-      final forceReview =
-          skew > kClockSkewLimit &&
-          _app.settings.conflictPolicy == ConflictPolicy.newestWins;
+      if (skew > kClockSkewLimit) {
+        throw SyncException(
+          "These devices' clocks are ${skew.inMinutes} minutes apart, so "
+          '"newest wins" would pick the wrong copy. Fix the time on one of '
+          'them and sync again.',
+        );
+      }
 
       phase = SyncPhase.merging;
       notifyListeners();
 
-      final outcome = await _mergeIn(
-        exchange.library,
-        exchange.pantry,
-        forceReview: forceReview,
-        skew: skew,
-      );
+      final outcome = await _mergeIn(exchange.library, exchange.pantry);
 
       if (pendingConflicts.isEmpty) {
         await _fetchMissingPhotos(client, peer, base);
@@ -283,6 +290,10 @@ class SyncService extends ChangeNotifier implements SyncHost {
       peerState.library,
       peerState.pantry,
       answers: answers,
+      // The records the user chose between are re-stamped as this device's own
+      // edit, so the answer is newer than either copy that caused the question
+      // and the peer settles on the next exchange without being asked.
+      restamp: answers.keys.toSet(),
     );
     phase = pendingConflicts.isEmpty ? SyncPhase.done : SyncPhase.idle;
     notifyListeners();
@@ -295,19 +306,30 @@ class SyncService extends ChangeNotifier implements SyncHost {
     LibraryDatabase incomingLibrary,
     PantryDatabase incomingPantry, {
     Map<String, Resolution> answers = const {},
-    bool forceReview = false,
-    Duration skew = Duration.zero,
-    ConflictPolicy? policy,
+    Set<String> restamp = const {},
+    bool deferTiesToLocal = false,
   }) async {
-    final plan = _app.planMerge(
+    var plan = _app.planMerge(
       incomingLibrary,
       incomingPantry,
       answers: answers,
-      forceReview: forceReview,
-      policy: policy,
     );
 
-    final unresolved = [...plan.library.unresolved, ...plan.pantry.unresolved];
+    var unresolved = [...plan.library.unresolved, ...plan.pantry.unresolved];
+
+    if (unresolved.isNotEmpty && deferTiesToLocal) {
+      // Replay with every tie answered "keep mine". The merge already holds
+      // this device's copy for a conflicted record, so nothing is lost — the
+      // choice simply moves to the device with someone at it.
+      final kept = {
+        for (final c in unresolved) c.id: Resolution.takeLocal,
+        ...answers,
+      };
+      plan = _app.planMerge(incomingLibrary, incomingPantry, answers: kept);
+      unresolved = [...plan.library.unresolved, ...plan.pantry.unresolved];
+      deferredTies = kept.length - answers.length;
+    }
+
     if (unresolved.isNotEmpty) {
       // Hold the peer's state so the answers can be replayed against exactly
       // the same inputs — the merge is a function, so this is a replay rather
@@ -315,18 +337,10 @@ class SyncService extends ChangeNotifier implements SyncHost {
       _pendingPeerState = (library: incomingLibrary, pantry: incomingPantry);
       pendingConflicts = unresolved;
       notifyListeners();
-      return SyncOutcome(
-        received: 0,
-        sent: 0,
-        conflicts: unresolved.length,
-        message: forceReview
-            ? 'These devices\' clocks are ${skew.inMinutes} minutes apart, so '
-                  '"newest wins" would not mean much. Have a look instead.'
-            : null,
-      );
+      return SyncOutcome(received: 0, sent: 0, conflicts: unresolved.length);
     }
 
-    await _app.applyMerge(plan.library, plan.pantry);
+    await _app.applyMerge(plan.library, plan.pantry, restamp: restamp);
     _pendingPeerState = null;
     pendingConflicts = const [];
 

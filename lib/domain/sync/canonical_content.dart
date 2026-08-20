@@ -65,6 +65,23 @@ bool sameContent(
     jsonEncode(canonicalContent(kind, a)) ==
     jsonEncode(canonicalContent(kind, b));
 
+/// Orders two copies by their content alone.
+///
+/// The tie-break of last resort, for the places a decision has to be made and
+/// the stamps have nothing left to say. It must be **symmetric**: the other
+/// device calls this with the arguments the other way round and has to reach
+/// the opposite answer, or the two never agree. Anything positional — "keep
+/// mine" — fails that test, because `mine` and `theirs` are swapped between the
+/// two devices. The canonical content is the one thing both sides see
+/// identically, so it is what the tie is broken on.
+int compareContent(
+  EntityKind kind,
+  Map<String, dynamic> a,
+  Map<String, dynamic> b,
+) => jsonEncode(
+  canonicalContent(kind, a),
+).compareTo(jsonEncode(canonicalContent(kind, b)));
+
 Object? _canonical(Object? value) {
   if (value is Map) {
     final out = <String, Object?>{};

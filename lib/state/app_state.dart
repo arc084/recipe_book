@@ -408,19 +408,23 @@ class AppState extends ChangeNotifier {
 
   void deletePantryItem(String id) {
     pantry.items.removeWhere((p) => p.id == id);
-    // Lines pointing at it become recipe-only rather than dangling.
-    for (final r in library.recipes) {
-      for (final ing in r.ingredients) {
-        if (ing.pantryItemId == id) ing.pantryItemId = null;
-      }
-    }
     _bury(EntityKind.pantryItem, id);
     _touchPantry();
-    // Deliberately unstamped: the recipes above only had a link cleared, which
-    // every device recomputes for itself from the tombstone. Stamping them
-    // would make this device's copy of each one newer than the other device's
-    // genuine edits, so deleting one pantry item would quietly win a dozen
-    // unrelated recipe conflicts.
+
+    // The ingredient lines pointing at it are deliberately left alone.
+    //
+    // Clearing them here would edit recipe content without stamping it — and
+    // stamping is not the answer either, because that would make this device's
+    // copy of a dozen unrelated recipes newer than the other device's genuine
+    // edits. Unstamped, the two devices hold the same recipe at the same stamp
+    // with different content, which is exactly what the merge now stops to ask
+    // about: a question about a link the user never touched.
+    //
+    // Instead the link is derived. `repairCrossReferences` clears any
+    // pantryItemId whose item has a tombstone, and it runs on both devices
+    // after every merge, so both reach the same answer from the same input. In
+    // the meantime a dangling id is harmless: MacroEngine.item returns null for
+    // it and PantryCoverage falls back to matching on the name.
     _touchLibrary();
   }
 
@@ -827,11 +831,6 @@ class AppState extends ChangeNotifier {
     _touchSettings();
   }
 
-  void setConflictPolicy(ConflictPolicy p) {
-    settings.conflictPolicy = p;
-    _touchSettings();
-  }
-
   void setPermission(String key, bool granted) {
     final p = settings.permissions.where((x) => x.key == key).firstOrNull;
     if (p == null) return;
@@ -867,32 +866,17 @@ class AppState extends ChangeNotifier {
     LibraryDatabase incomingLibrary,
     PantryDatabase incomingPantry, {
     Map<String, Resolution> answers = const {},
-    String remoteLabel = 'the other device',
-
-    /// Set when the two devices' clocks disagree enough that "newest" would be
-    /// comparing times that do not mean the same thing.
-    bool forceReview = false,
-
-    /// The session's policy, when the device that started it set one.
-    ConflictPolicy? policy,
   }) {
-    final resolved = forceReview
-        ? ConflictPolicy.ask
-        : (policy ?? settings.conflictPolicy);
     return (
       library: mergeDatabase(
         library.toSnapshot(),
         incomingLibrary.toSnapshot(),
-        policy: resolved,
         answers: answers,
-        remoteLabel: remoteLabel,
       ),
       pantry: mergeDatabase(
         pantry.toSnapshot(),
         incomingPantry.toSnapshot(),
-        policy: resolved,
         answers: answers,
-        remoteLabel: remoteLabel,
       ),
     );
   }
@@ -903,14 +887,37 @@ class AppState extends ChangeNotifier {
   /// the whole point of "ask" is that it is their call.
   Future<RepairReport> applyMerge(
     MergePlan libraryPlan,
-    MergePlan pantryPlan,
-  ) async {
+    MergePlan pantryPlan, {
+
+    /// Ids the user just chose between, which are re-stamped as this device's
+    /// own edit.
+    ///
+    /// Answering a tie *is* an edit — the user picked this copy, just now — and
+    /// stamping it now is what makes their answer newer than either copy that
+    /// caused the question. Without it the two devices would still hold the
+    /// same tied stamps, and the identical question would come back on every
+    /// exchange for ever.
+    Set<String> restamp = const {},
+  }) async {
     if (!libraryPlan.isComplete || !pantryPlan.isComplete) {
       throw StateError('Answer the conflicts before applying the merge.');
     }
 
     library = libraryFromSnapshot(libraryPlan.result);
     pantry = pantryFromSnapshot(pantryPlan.result);
+
+    if (restamp.isNotEmpty) {
+      for (final e in <Stamped>[
+        ...library.recipes,
+        ...library.mealTypes,
+        ...library.aisles,
+        ...library.groceries,
+        ...library.plan,
+        ...pantry.items,
+      ]) {
+        if (restamp.contains(e.id)) e.stamp = _clock.next();
+      }
+    }
 
     final report = repairCrossReferences(library, pantry, clock: _clock);
 

@@ -12,7 +12,9 @@ void main() {
       final a = Seed.build();
       final b = Seed.build();
 
-      Set<String> ids(Iterable<dynamic> xs) => {for (final x in xs) x.id as String};
+      Set<String> ids(Iterable<dynamic> xs) => {
+        for (final x in xs) x.id as String,
+      };
 
       expect(ids(a.library.recipes), ids(b.library.recipes));
       expect(ids(a.library.mealTypes), ids(b.library.mealTypes));
@@ -35,7 +37,10 @@ void main() {
         a.ingredients.map((i) => i.id).toList(),
         b.ingredients.map((i) => i.id).toList(),
       );
-      expect(a.steps.map((s) => s.id).toList(), b.steps.map((s) => s.id).toList());
+      expect(
+        a.steps.map((s) => s.id).toList(),
+        b.steps.map((s) => s.id).toList(),
+      );
     });
 
     test('ids are unique within one seed', () {
@@ -54,7 +59,10 @@ void main() {
     test('distinct kinds with the same key do not collide', () {
       // "Dessert" is a meal type; nothing stops a pantry item sharing a name
       // with an aisle. The kind prefix is what keeps them apart.
-      expect(seedIdFor('mealType', 'Dessert'), isNot(seedIdFor('aisle', 'Dessert')));
+      expect(
+        seedIdFor('mealType', 'Dessert'),
+        isNot(seedIdFor('aisle', 'Dessert')),
+      );
     });
   });
 }

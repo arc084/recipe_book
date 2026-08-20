@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recipe_book/data/models.dart';
-import 'package:recipe_book/data/settings.dart';
+import 'package:recipe_book/domain/sync/stamp.dart';
 import 'package:recipe_book/domain/sync/merge.dart';
 import 'package:recipe_book/state/app_state.dart';
 
@@ -38,8 +38,6 @@ void main() {
     b = AppState(directory: dirB);
     await a.load();
     await b.load();
-    a.settings.conflictPolicy = ConflictPolicy.newestWins;
-    b.settings.conflictPolicy = ConflictPolicy.newestWins;
     await pair();
   });
 
@@ -232,13 +230,18 @@ void main() {
     expect(reopened.recipe(added.id)?.title, 'Persisted');
   });
 
-  test('ask refuses to apply until the conflict is answered', () async {
-    a.settings.conflictPolicy = ConflictPolicy.ask;
+  test('a tie refuses to apply until it is answered', () async {
     final id = a.library.recipes.first.id;
-    a.recipe(id)!.notes = 'A';
-    a.saveRecipe(a.recipe(id)!);
-    b.recipe(id)!.notes = 'B';
-    b.saveRecipe(b.recipe(id)!);
+    // A genuine tie: the same stamp on both sides with different content.
+    // That is the only thing the merge asks about now — two different stamps
+    // simply resolve to the newer copy without interrupting anyone.
+    final tie = Stamp(DateTime.utc(2026, 8, 19, 12), 'both');
+    a.recipe(id)!
+      ..notes = 'A'
+      ..stamp = tie;
+    b.recipe(id)!
+      ..notes = 'B'
+      ..stamp = tie;
 
     final plan = a.planMerge(b.library, b.pantry);
     expect(plan.library.unresolved, hasLength(1));

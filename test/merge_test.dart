@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:recipe_book/data/settings.dart';
 import 'package:recipe_book/domain/sync/merge.dart';
 import 'package:recipe_book/domain/sync/stamp.dart';
 import 'package:recipe_book/domain/sync/tombstone.dart';
@@ -76,9 +75,8 @@ Tombstone grave(
 MergePlan run(
   DbSnapshot a,
   DbSnapshot b, {
-  ConflictPolicy policy = ConflictPolicy.newestWins,
   Map<String, Resolution> answers = const {},
-}) => mergeDatabase(a, b, policy: policy, answers: answers);
+}) => mergeDatabase(a, b, answers: answers);
 
 void main() {
   group('the decision table', () {
@@ -113,16 +111,16 @@ void main() {
       expect(plan.result.entities['x']!.stamp, s(5, 'B'));
     });
 
-    test('different content is a conflict', () {
+    test('different content at different stamps is not a conflict', () {
+      // The newer copy wins outright. Only a tie is worth interrupting for.
       final plan = run(
         snap(records: [item('x', at: 1, name: 'parmesan')]),
         snap(
           records: [item('x', at: 5, by: 'B', name: 'parmigiano')],
         ),
-        policy: ConflictPolicy.ask,
       );
-      expect(plan.unresolved.single.reason, ConflictReason.editEdit);
-      expect(plan.isComplete, isFalse);
+      expect(plan.isComplete, isTrue);
+      expect(plan.result.entities['x']!.json['name'], 'parmigiano');
     });
 
     test('a delete beats a copy that predates it, silently', () {
@@ -134,15 +132,27 @@ void main() {
       expect(plan.unresolved, isEmpty);
     });
 
-    test('an edit after the delete raises a conflict', () {
+    test('an edit after the delete wins and brings the record back', () {
+      // The edit is strictly newer than the delete, so newest-wins settles it
+      // without asking: someone changed their mind after deleting.
       final plan = run(
         snap(graves: [grave('x', 5)]),
         snap(records: [item('x', at: 10, by: 'B')]),
-        policy: ConflictPolicy.ask,
+      );
+      expect(plan.isComplete, isTrue);
+      expect(plan.result.entities.containsKey('x'), isTrue);
+      expect(plan.result.tombstones.containsKey('x'), isFalse);
+    });
+
+    test('an edit stamped exactly at the delete is a question', () {
+      // A tie against a tombstone is the same problem as a tie between two
+      // edits: nothing in the stamps can settle it.
+      final plan = run(
+        snap(graves: [grave('x', 5)]),
+        snap(records: [item('x', at: 5, by: 'A')]),
       );
       expect(plan.unresolved.single.reason, ConflictReason.editDelete);
-      // The record is held rather than dropped: an unfinished review must not
-      // lose the edit.
+      // Held rather than dropped: an unfinished review must not lose the edit.
       expect(plan.result.entities.containsKey('x'), isTrue);
     });
 
@@ -169,90 +179,79 @@ void main() {
     });
   });
 
-  group('policies', () {
+  group('ties — the only thing the merge ever asks about', () {
     final mine = item('x', at: 1, by: 'A', name: 'mine');
     final theirs = item('x', at: 9, by: 'B', name: 'theirs');
 
-    test('newest wins settles without asking', () {
+    test('the newer copy wins, with nothing to answer', () {
       final plan = run(snap(records: [mine]), snap(records: [theirs]));
+      expect(plan.unresolved, isEmpty);
+      expect(plan.result.entities['x']!.json['name'], 'theirs');
+    });
+
+    test('an identical stamp with differing content is a question', () {
+      // Same instant, same writer — the stamps have nothing left to say, so
+      // this is the one case the user has to settle.
+      final plan = run(
+        snap(
+          records: [item('x', at: 5, by: 'A', name: 'mine')],
+        ),
+        snap(
+          records: [item('x', at: 5, by: 'A', name: 'theirs')],
+        ),
+      );
+      expect(plan.unresolved, hasLength(1));
+      expect(plan.unresolved.single.reason, ConflictReason.editEdit);
+    });
+
+    test('an identical stamp with identical content is silent', () {
+      final plan = run(
+        snap(
+          records: [item('x', at: 5, by: 'A', name: 'same')],
+        ),
+        snap(
+          records: [item('x', at: 5, by: 'A', name: 'same')],
+        ),
+      );
+      expect(plan.unresolved, isEmpty);
+      expect(plan.stats.totalConflicted, 0);
+    });
+
+    test('an answer settles it on replay', () {
+      final a = snap(
+        records: [item('x', at: 5, by: 'A', name: 'mine')],
+      );
+      final b = snap(
+        records: [item('x', at: 5, by: 'A', name: 'theirs')],
+      );
+      final plan = run(a, b, answers: {'x': Resolution.takeRemote});
       expect(plan.isComplete, isTrue);
       expect(plan.result.entities['x']!.json['name'], 'theirs');
     });
 
-    test('ask defers and suggests the newer side', () {
-      final plan = run(
-        snap(records: [mine]),
-        snap(records: [theirs]),
-        policy: ConflictPolicy.ask,
+    test('a tie holds the local copy until it is answered', () {
+      // Abandoning a review must lose nothing.
+      final a = snap(
+        records: [item('x', at: 5, by: 'A', name: 'mine')],
       );
-      expect(plan.unresolved.single.suggested, Resolution.takeRemote);
+      final b = snap(
+        records: [item('x', at: 5, by: 'A', name: 'theirs')],
+      );
+      expect(run(a, b).result.entities['x']!.json['name'], 'mine');
     });
 
-    test('an answer settles it on replay', () {
-      final plan = run(
-        snap(records: [mine]),
-        snap(records: [theirs]),
-        policy: ConflictPolicy.ask,
-        answers: {'x': Resolution.takeLocal},
+    test('a tie is raised on BOTH devices, not just one', () {
+      // The bug this replaces: each device silently kept its own copy and no
+      // conflict was raised at all, so the two never converged and neither
+      // user was ever told.
+      final a = snap(
+        records: [item('x', at: 5, by: 'A', name: 'mine')],
       );
-      expect(plan.isComplete, isTrue);
-      expect(plan.result.entities['x']!.json['name'], 'mine');
-    });
-
-    test('keep both produces a second, labelled pantry item', () {
-      final plan = run(
-        snap(records: [mine]),
-        snap(records: [theirs]),
-        policy: ConflictPolicy.keepBoth,
+      final b = snap(
+        records: [item('x', at: 5, by: 'A', name: 'theirs')],
       );
-      expect(plan.result.entities, hasLength(2));
-      final copy = plan.result.entities.values.firstWhere((e) => e.id != 'x');
-      expect(copy.json['name'], contains('mine'));
-      // The copy drops its aliases: two items answering to the same name would
-      // make name matching depend on which was found first.
-      expect(copy.json['aliases'], isEmpty);
-    });
-
-    test('keep both re-mints a copied recipe\'s nested records', () {
-      final a = recipe('r', at: 1, title: 'Katsu');
-      final b = recipe('r', at: 9, by: 'B', title: 'Katsu curry');
-      final plan = run(
-        snap(records: [a]),
-        snap(records: [b]),
-        policy: ConflictPolicy.keepBoth,
-      );
-      final copy = plan.result.entities.values.firstWhere((e) => e.id != 'r');
-      final components = copy.json['components'] as List;
-      final ingredients = copy.json['ingredients'] as List;
-      expect(components.first['id'], isNot('c1'));
-      expect(components.first['recipeId'], copy.id);
-      // The ingredient must follow its component, or the copy has an orphan.
-      expect(ingredients.first['componentId'], components.first['id']);
-    });
-
-    test('keep both degrades to newest for meal types and aisles', () {
-      // Two "Dinner" categories are worse than losing a rename.
-      final a = StampedRecord(
-        kind: EntityKind.mealType,
-        id: 'm',
-        json: {'id': 'm', 'name': 'Dinner', 'order': 0},
-        stamp: s(1, 'A'),
-        label: 'Dinner',
-      );
-      final b = StampedRecord(
-        kind: EntityKind.mealType,
-        id: 'm',
-        json: {'id': 'm', 'name': 'Supper', 'order': 0},
-        stamp: s(9, 'B'),
-        label: 'Supper',
-      );
-      final plan = run(
-        snap(records: [a]),
-        snap(records: [b]),
-        policy: ConflictPolicy.keepBoth,
-      );
-      expect(plan.result.entities, hasLength(1));
-      expect(plan.result.entities['m']!.json['name'], 'Supper');
+      expect(run(a, b).unresolved, hasLength(1));
+      expect(run(b, a).unresolved, hasLength(1));
     });
   });
 
@@ -261,7 +260,6 @@ void main() {
       final plan = run(
         snap(registers: {'assumeStaples': Register(true, s(1, 'A'))}),
         snap(registers: {'assumeStaples': Register(false, s(9, 'B'))}),
-        policy: ConflictPolicy.ask,
       );
       expect(plan.result.registers['assumeStaples']!.value, false);
       expect(plan.unresolved, isEmpty);
@@ -317,67 +315,57 @@ void main() {
       return (a: snap(records: a, graves: ga), b: snap(records: b, graves: gb));
     }
 
-    for (final policy in [ConflictPolicy.newestWins, ConflictPolicy.keepBoth]) {
-      test(
-        'merging twice changes nothing the second time (${policy.name})',
-        () {
-          for (var seed = 0; seed < 40; seed++) {
-            final d = drift(seed);
-            final once = run(d.a, d.b, policy: policy).result;
-            final twice = run(once, d.b, policy: policy).result;
-            expect(
-              fingerprint(twice),
-              fingerprint(once),
-              reason: 'seed $seed under ${policy.name}',
-            );
-          }
-        },
-      );
-
-      test('A→B and B→A converge (${policy.name})', () {
+    {
+      test('merging twice changes nothing the second time', () {
         for (var seed = 0; seed < 40; seed++) {
           final d = drift(seed);
-          final ab = run(d.a, d.b, policy: policy).result;
-          final ba = run(d.b, d.a, policy: policy).result;
+          final once = run(d.a, d.b).result;
+          final twice = run(once, d.b).result;
+          expect(fingerprint(twice), fingerprint(once), reason: 'seed $seed');
+        }
+      });
+
+      test('A→B and B→A converge', () {
+        for (var seed = 0; seed < 40; seed++) {
+          final d = drift(seed);
+          final ab = run(d.a, d.b).result;
+          final ba = run(d.b, d.a).result;
           // Each side then hears the other's merged result.
-          final finalA = run(ab, ba, policy: policy).result;
-          final finalB = run(ba, ab, policy: policy).result;
+          final finalA = run(ab, ba).result;
+          final finalB = run(ba, ab).result;
           expect(
             finalA.entities.keys.toSet(),
             finalB.entities.keys.toSet(),
-            reason: 'seed $seed under ${policy.name}',
+            reason: 'seed $seed',
           );
           expect(
             finalA.tombstones.keys.toSet(),
             finalB.tombstones.keys.toSet(),
-            reason: 'seed $seed under ${policy.name}',
+            reason: 'seed $seed',
           );
         }
       });
 
-      test(
-        'no id is ever lost without a tombstone explaining it (${policy.name})',
-        () {
-          for (var seed = 0; seed < 40; seed++) {
-            final d = drift(seed);
-            final out = run(d.a, d.b, policy: policy).result;
-            final seen = {...d.a.entities.keys, ...d.b.entities.keys};
-            for (final id in seen) {
-              expect(
-                out.entities.containsKey(id) || out.tombstones.containsKey(id),
-                isTrue,
-                reason: 'seed $seed lost $id under ${policy.name}',
-              );
-            }
+      test('no id is ever lost without a tombstone explaining it', () {
+        for (var seed = 0; seed < 40; seed++) {
+          final d = drift(seed);
+          final out = run(d.a, d.b).result;
+          final seen = {...d.a.entities.keys, ...d.b.entities.keys};
+          for (final id in seen) {
+            expect(
+              out.entities.containsKey(id) || out.tombstones.containsKey(id),
+              isTrue,
+              reason: 'seed $seed lost $id',
+            );
           }
-        },
-      );
+        }
+      });
     }
 
-    test('keep-both does not breed copies of copies', () {
-      // The mint is a pure function of the conflict, so the second merge
-      // recomputes the same id, finds it already present, and does nothing.
-      // A clock-read or random id here would double the library every sync.
+    test('a merge never invents a record', () {
+      // What "keep both" used to do, and why it was removed: on a tie each
+      // device made *itself* the winner, minted a copy the other had never
+      // seen, and every exchange bred another one. Nothing is minted now.
       final a = snap(
         records: [item('x', at: 1, by: 'A', name: 'mine')],
       );
@@ -385,14 +373,10 @@ void main() {
         records: [item('x', at: 9, by: 'B', name: 'theirs')],
       );
 
-      final once = run(a, b, policy: ConflictPolicy.keepBoth).result;
-      expect(once.entities, hasLength(2));
-
-      final twice = run(once, b, policy: ConflictPolicy.keepBoth).result;
-      expect(twice.entities, hasLength(2));
-
-      final thrice = run(twice, b, policy: ConflictPolicy.keepBoth).result;
-      expect(thrice.entities, hasLength(2));
+      final once = run(a, b).result;
+      expect(once.entities, hasLength(1));
+      expect(run(once, b).result.entities, hasLength(1));
+      expect(run(run(once, b).result, b).result.entities, hasLength(1));
     });
   });
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:recipe_book/data/models.dart';
+import 'package:recipe_book/domain/sync/stamp.dart';
 import 'package:recipe_book/data/settings.dart';
 import 'package:recipe_book/domain/sync/merge.dart';
 import 'package:recipe_book/state/app_state.dart';
@@ -31,8 +32,6 @@ void main() {
     await b.load();
     a.settings.deviceName = 'Kitchen laptop';
     b.settings.deviceName = 'The phone';
-    a.settings.conflictPolicy = ConflictPolicy.newestWins;
-    b.settings.conflictPolicy = ConflictPolicy.newestWins;
 
     hostSide = SyncService(a);
     joinSide = SyncService(b);
@@ -235,15 +234,20 @@ void main() {
     expect(again.received, 0);
   });
 
-  test('ask pauses the session instead of choosing', () async {
+  test('a tie pauses the session instead of choosing', () async {
     final peer = await pair();
-    b.settings.conflictPolicy = ConflictPolicy.ask;
 
     final id = b.library.recipes.first.id;
-    a.recipe(id)!.notes = 'laptop note';
-    a.saveRecipe(a.recipe(id)!);
-    b.recipe(id)!.notes = 'phone note';
-    b.saveRecipe(b.recipe(id)!);
+    // A genuine tie: the same stamp on both sides with different content.
+    // That is the only thing the merge asks about now — two different stamps
+    // simply resolve to the newer copy without interrupting anyone.
+    final tie = Stamp(DateTime.utc(2026, 8, 19, 12), 'both');
+    a.recipe(id)!
+      ..notes = 'laptop note'
+      ..stamp = tie;
+    b.recipe(id)!
+      ..notes = 'phone note'
+      ..stamp = tie;
 
     final outcome = await joinSide.syncWith(peer, base);
 

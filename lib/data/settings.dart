@@ -4,19 +4,6 @@ import 'package:flutter/material.dart';
 
 /// How a sync conflict is resolved. The default is to ask — it is the user's
 /// call, not the app's.
-enum ConflictPolicy {
-  ask('Ask me'),
-  newestWins('Newest wins'),
-  keepBoth('Keep both');
-
-  const ConflictPolicy(this.label);
-  final String label;
-
-  static ConflictPolicy parse(String? s) => ConflictPolicy.values.firstWhere(
-    (v) => v.name == s,
-    orElse: () => ConflictPolicy.ask,
-  );
-}
 
 /// A device this one exchanges changes with. No account, no server — pairing
 /// is a six-digit code typed on the device being added.
@@ -167,7 +154,6 @@ class AppSettings {
     this.deviceId,
     this.themeMode = ThemeMode.dark,
     String? deviceName,
-    this.conflictPolicy = ConflictPolicy.ask,
     List<PairedDevice>? devices,
     List<PermissionState>? permissions,
     this.lastSync,
@@ -191,7 +177,6 @@ class AppSettings {
   /// What the other device calls this one in its paired list. Defaults to
   /// something true of the platform rather than "This PC" on a phone.
   String deviceName;
-  ConflictPolicy conflictPolicy;
   final List<PairedDevice> devices;
   final List<PermissionState> permissions;
   DateTime? lastSync;
@@ -202,7 +187,6 @@ class AppSettings {
       orElse: () => ThemeMode.dark,
     ),
     deviceName: j['deviceName'] as String?,
-    conflictPolicy: ConflictPolicy.parse(j['conflictPolicy'] as String?),
     devices: [
       for (final d in (j['devices'] as List? ?? []))
         PairedDevice.fromJson(d as Map<String, dynamic>),
@@ -220,7 +204,6 @@ class AppSettings {
     'schema': 1,
     'themeMode': themeMode.name,
     'deviceName': deviceName,
-    'conflictPolicy': conflictPolicy.name,
     'devices': [for (final d in devices) d.toJson()],
     'permissions': [for (final p in permissions) p.toJson()],
     'lastSync': lastSync?.toIso8601String(),

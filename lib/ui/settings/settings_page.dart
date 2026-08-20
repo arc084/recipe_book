@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../data/settings.dart';
 import '../../state/app_state.dart';
 import '../../theme/tokens.dart';
 import '../widgets/primitives.dart';
@@ -192,39 +191,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ],
-          const SizedBox(height: 14),
-          Text(
-            'When the same thing changes in two places',
-            style: TextStyle(
-              fontFamily: t.bodyFamily,
-              fontSize: 12.5,
-              color: t.text,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              for (final policy in ConflictPolicy.values) ...[
-                Tag(
-                  policy.label,
-                  style: app.settings.conflictPolicy == policy
-                      ? TagStyle.accent
-                      : TagStyle.outline,
-                  onTap: () => app.setConflictPolicy(policy),
-                ),
-                const SizedBox(width: 7),
-              ],
-              const SizedBox(width: 4),
-              Text(
-                'It is your call — the default is to ask.',
-                style: TextStyle(
-                  fontFamily: t.bodyFamily,
-                  fontSize: 11,
-                  color: t.textFaint,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

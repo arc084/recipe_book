@@ -59,7 +59,6 @@ class _FakeHost implements SyncHost {
   final List<PairedDevice> pairedDevices = [];
 
   final List<LibraryDatabase> received = [];
-  final List<ConflictPolicy> policies = [];
   final List<String> from = [];
   final Map<String, List<int>> photos = {};
 
@@ -82,11 +81,9 @@ class _FakeHost implements SyncHost {
   Future<void> onIncoming(
     LibraryDatabase l,
     PantryDatabase p,
-    ConflictPolicy policy,
     String fromDeviceId,
   ) async {
     received.add(l);
-    policies.add(policy);
     from.add(fromDeviceId);
   }
 
@@ -234,7 +231,6 @@ void main() {
           ),
           library: LibraryDatabase(),
           pantry: PantryDatabase(),
-          policy: ConflictPolicy.newestWins,
         ),
         throwsA(isA<SyncException>()),
       );
@@ -336,7 +332,6 @@ void main() {
         peer: peer,
         library: mine,
         pantry: PantryDatabase(),
-        policy: ConflictPolicy.newestWins,
       );
 
       // Ours arrived there…
@@ -344,20 +339,6 @@ void main() {
       // …and theirs came back.
       expect(result.library.recipes.single.id, 'from-host');
       expect(result.peerClock, isNotNull);
-    });
-
-    test("the host is told the initiating device's policy", () async {
-      // One session, one policy. Otherwise a "newest wins" host quietly
-      // settles the very conflicts an "ask" peer opened the session to see.
-      final peer = await pair();
-      await client.exchange(
-        base,
-        peer: peer,
-        library: LibraryDatabase(),
-        pantry: PantryDatabase(),
-        policy: ConflictPolicy.ask,
-      );
-      expect(host.policies.single, ConflictPolicy.ask);
     });
 
     test('the host learns which device it just exchanged with', () async {
@@ -369,7 +350,6 @@ void main() {
         peer: peer,
         library: LibraryDatabase(),
         pantry: PantryDatabase(),
-        policy: ConflictPolicy.newestWins,
       );
       expect(host.from.single, 'joining-device');
     });
@@ -386,7 +366,6 @@ void main() {
         peer: peer,
         library: LibraryDatabase(),
         pantry: PantryDatabase(),
-        policy: ConflictPolicy.newestWins,
       );
 
       expect(result.library.recipes.single.updatedAt, recipe.updatedAt);
@@ -403,7 +382,6 @@ void main() {
         peer: peer,
         library: grave,
         pantry: PantryDatabase(),
-        policy: ConflictPolicy.newestWins,
       );
       expect(result.library.tombstones, isEmpty);
     });
@@ -453,7 +431,6 @@ void main() {
         peer: peer,
         library: LibraryDatabase(),
         pantry: PantryDatabase(),
-        policy: ConflictPolicy.newestWins,
       );
       expect(exchange.wantedPhotos, [hash], reason: 'host should ask for it');
 

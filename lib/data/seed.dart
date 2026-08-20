@@ -1,3 +1,4 @@
+import '../domain/sync/stamp.dart';
 import 'database.dart';
 import 'models.dart';
 
@@ -7,6 +8,21 @@ import 'models.dart';
 /// screens are not copied across — the app calculates its own from the pantry
 /// values below, which is the rule everywhere else in the app. What is seeded
 /// here are label values a packet would actually carry.
+/// When the shipped seed last changed. **Bump this when editing seed content.**
+///
+/// Seeded records used to carry `Stamp.epoch`, which ties with itself: every
+/// seeded record on one device tied with its counterpart on the other. While
+/// the content matched that was a silent no-op, but the moment a build changed
+/// the seed and one device updated first, every changed record became a tie
+/// with differing content — and a tie is the one thing the merge asks the user
+/// about. That would have handed them a pile of questions about recipes they
+/// never touched.
+///
+/// A fixed date is identical on every install of a build, so two fresh installs
+/// still tie exactly and merge to nothing. When the seed changes, the newer one
+/// simply wins.
+final kSeedStampedAt = DateTime.utc(2026, 8, 19);
+
 abstract final class Seed {
   static ({LibraryDatabase library, PantryDatabase pantry}) build() {
     // ── Meal types ────────────────────────────────────────────────────────
@@ -980,6 +996,20 @@ abstract final class Seed {
       entry(5, MealSlot.lunch, poke),
       entry(6, MealSlot.dinner, curry),
     ];
+
+    // Stamped, but with no device id: a seeded record still loses to any real
+    // edit, which always carries both a device and a later time.
+    final seedStamp = Stamp(kSeedStampedAt, '');
+    for (final e in <Stamped>[
+      ...recipes,
+      ...mealTypes,
+      ...aisles,
+      ...groceries,
+      ...plan,
+      ...pantryItems,
+    ]) {
+      e.stamp = seedStamp;
+    }
 
     return (
       library: LibraryDatabase(

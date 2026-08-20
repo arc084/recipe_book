@@ -25,6 +25,52 @@ const Duration kClockTolerance = Duration(minutes: 2);
 /// it would be comparing are not measuring the same thing.
 const Duration kClockSkewLimit = Duration(minutes: 2);
 
+/// Whether [host] is on the local network.
+///
+/// Sync is a local-network protocol, and it is deliberately unencrypted: a
+/// self-signed certificate proves nothing, so the requests are signed instead.
+/// That reasoning only holds on a LAN — a signed request to a public host would
+/// still be a request to a public host — so this is what bounds it.
+///
+/// It lives here rather than in Android's network-security-config because that
+/// file cannot express it: `<domain>` takes a hostname or a literal IP and has
+/// no subnet syntax, so "private ranges only" was never sayable there.
+bool isPrivateAddress(String host) {
+  final h = host.trim().toLowerCase();
+  if (h.isEmpty) return false;
+  if (h == 'localhost' || h.endsWith('.local')) return true;
+
+  // IPv6: loopback, unique-local (fc00::/7) and link-local (fe80::/10).
+  if (h.contains(':')) {
+    final v6 = h.replaceAll('[', '').replaceAll(']', '');
+    return v6 == '::1' ||
+        v6.startsWith('fc') ||
+        v6.startsWith('fd') ||
+        v6.startsWith('fe8') ||
+        v6.startsWith('fe9') ||
+        v6.startsWith('fea') ||
+        v6.startsWith('feb');
+  }
+
+  final parts = h.split('.');
+  if (parts.length != 4) return false;
+  final octets = <int>[];
+  for (final p in parts) {
+    final n = int.tryParse(p);
+    if (n == null || n < 0 || n > 255) return false;
+    octets.add(n);
+  }
+
+  return switch (octets) {
+    [10, _, _, _] => true,
+    [127, _, _, _] => true,
+    [169, 254, _, _] => true,
+    [172, final b, _, _] when b >= 16 && b <= 31 => true,
+    [192, 168, _, _] => true,
+    _ => false,
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // Signing
 // ═══════════════════════════════════════════════════════════════════════════

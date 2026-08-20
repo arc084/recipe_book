@@ -163,13 +163,8 @@ class SyncClient {
     required PairedDevice peer,
     required LibraryDatabase library,
     required PantryDatabase pantry,
-    required ConflictPolicy policy,
   }) async {
     final body = jsonEncode({
-      // One session, one policy: whoever started it decides. Otherwise a
-      // "newest wins" host quietly settles the very conflicts an "ask" peer
-      // opened the session to be shown.
-      'policy': policy.name,
       'library': library.toJson(),
       'pantry': pantry.toJson(),
     });
@@ -250,9 +245,13 @@ class SyncClient {
 
   // ── Plumbing ──────────────────────────────────────────────────────────────
 
-  Future<http.Response> _get(Uri url) => _wrap(() => _http.get(url));
+  Future<http.Response> _get(Uri url) {
+    _requirePrivate(url);
+    return _wrap(() => _http.get(url));
+  }
 
   Future<http.Response> _post(Uri url, String body, {PairedDevice? peer}) {
+    _requirePrivate(url);
     final bytes = utf8.encode(body);
     final headers = <String, String>{'content-type': 'application/json'};
     if (peer?.psk != null) {
@@ -267,6 +266,21 @@ class SyncClient {
       );
     }
     return _wrap(() => _http.post(url, headers: headers, body: bytes));
+  }
+
+  /// Refuses to dial anything that is not on the local network.
+  ///
+  /// Sync is unencrypted by design — signed rather than wrapped in TLS — and
+  /// that trade only holds on a LAN. Android's network-security-config cannot
+  /// express this restriction, so it is enforced here, where a test can prove
+  /// it.
+  void _requirePrivate(Uri url) {
+    if (!isPrivateAddress(url.host)) {
+      throw SyncException(
+        'Sync only talks to devices on your own network, and ${url.host} is '
+        'not one.',
+      );
+    }
   }
 
   /// Turns socket failures into something worth showing a user.

@@ -1,8 +1,3 @@
-import 'dart:convert';
-
-import 'package:crypto/crypto.dart';
-
-import '../../data/settings.dart';
 import 'canonical_content.dart';
 import 'stamp.dart';
 import 'tombstone.dart';
@@ -66,8 +61,12 @@ enum ConflictReason {
   editDelete,
 }
 
-/// What to do about a conflict.
-enum Resolution { takeLocal, takeRemote, keepBoth }
+/// What to do about a tie.
+///
+/// There is no "keep both": it existed to serve a policy that no longer exists,
+/// and on a tie it made *each* device the winner, so each minted a copy the
+/// other had never seen and every exchange bred another one.
+enum Resolution { takeLocal, takeRemote }
 
 class Conflict {
   const Conflict({
@@ -75,7 +74,6 @@ class Conflict {
     required this.id,
     required this.label,
     required this.reason,
-    required this.suggested,
     this.local,
     this.remote,
     this.localDelete,
@@ -86,10 +84,6 @@ class Conflict {
   final String id;
   final String label;
   final ConflictReason reason;
-
-  /// What the configured policy would do unaided — the option the review UI
-  /// should preselect.
-  final Resolution suggested;
 
   /// Null when this side deleted the record.
   final StampedRecord? local;
@@ -136,58 +130,20 @@ class MergePlan {
   bool get isComplete => unresolved.isEmpty;
 }
 
-/// Invents identity for the records "keep both" has to create.
-///
-/// **Every method must be a pure function of its arguments.** Both devices run
-/// this merge independently over the same pair of records, and they have to
-/// arrive at the *same* id for the copy. If they do not, each device mints a
-/// copy the other has never seen, that copy syncs back, and every exchange
-/// breeds another one. A timestamp or a random uuid here would be a bug that
-/// only shows up on the third sync.
-abstract class MergeMint {
-  const MergeMint();
-
-  String copyId(String originalId, Stamp loser);
-  String nestedId(String newRecipeId, String originalNestedId);
-  Stamp copyStamp(Stamp winner, Stamp loser);
-}
-
-class DeterministicMint extends MergeMint {
-  const DeterministicMint();
-
-  String _hash(String input) =>
-      sha256.convert(utf8.encode(input)).toString().substring(0, 32);
-
-  @override
-  String copyId(String originalId, Stamp loser) =>
-      'copy-${_hash('$originalId|$loser|keepBoth')}';
-
-  @override
-  String nestedId(String newRecipeId, String originalNestedId) =>
-      'copy-${_hash('$newRecipeId|$originalNestedId')}';
-
-  /// One millisecond past the winner, authored by the losing device. Strictly
-  /// above both inputs so the copy is not immediately overwritten, and derived
-  /// rather than clock-read so both devices agree.
-  @override
-  Stamp copyStamp(Stamp winner, Stamp loser) =>
-      Stamp(winner.at.add(const Duration(milliseconds: 1)), loser.by);
-}
-
 /// Reconciles two snapshots of the same database.
 ///
 /// Pure: no clock, no randomness, no I/O. Identical inputs always produce an
 /// identical plan, which is what makes syncing twice a genuine no-op and what
 /// makes the property tests meaningful.
+/// The newer copy wins. The only thing the merge ever asks about is a **tie**:
+/// two copies carrying an identical stamp whose content differs, which the
+/// timestamps cannot settle. Answer those and call this again with the answers
+/// — it replays rather than mutates, so abandoning a review leaves nothing
+/// half-applied.
 MergePlan mergeDatabase(
   DbSnapshot local,
   DbSnapshot remote, {
-  required ConflictPolicy policy,
   Map<String, Resolution> answers = const {},
-  MergeMint mint = const DeterministicMint(),
-
-  /// Names the peer, only so a keep-both copy can say where it came from.
-  String remoteLabel = 'the other device',
 }) {
   final entities = <String, StampedRecord>{};
   final unresolved = <Conflict>[];
@@ -223,17 +179,18 @@ MergePlan mergeDatabase(
       final survivor = _laterOf(mine, theirs);
       if (survivor == null) continue;
 
-      if (survivor.stamp <= grave.stamp) {
+      if (survivor.stamp < grave.stamp) {
         // The surviving copy predates the delete, so the delete is simply news
         // the other side has not had yet.
         if (mine != null) stats._bump(stats.deleted, survivor.kind);
         continue;
       }
 
-      // Edited after it was deleted somewhere else. Someone has to choose.
+      // Edited strictly after the delete: the edit is newer, so it wins and the
+      // record comes back. Only an exact tie has to be asked about.
       final resolution =
           answers[id] ??
-          _autoResolveDelete(policy: policy, edit: survivor, grave: grave);
+          (survivor.stamp > grave.stamp ? Resolution.takeLocal : null);
 
       if (resolution == null) {
         unresolved.add(
@@ -242,7 +199,6 @@ MergePlan mergeDatabase(
             id: id,
             label: survivor.label,
             reason: ConflictReason.editDelete,
-            suggested: Resolution.takeLocal,
             local: mine,
             remote: theirs,
             localDelete: local.tombstones[id],
@@ -256,22 +212,14 @@ MergePlan mergeDatabase(
         continue;
       }
 
-      if (resolution == Resolution.keepBoth ||
-          resolution == Resolution.takeLocal ||
-          resolution == Resolution.takeRemote) {
-        // Keep-both's premise is that nothing is thrown away, so an edit that
-        // raced a delete is resurrected rather than dropped.
-        final keep = switch (resolution) {
-          Resolution.takeRemote => theirs ?? survivor,
-          Resolution.takeLocal => mine ?? survivor,
-          Resolution.keepBoth => survivor,
-        };
-        entities[id] = keep.withJson(
-          preserveLocalFields(keep.json, mine?.json),
-        );
-        tombstones.remove(id);
-        if (mine == null) stats._bump(stats.added, keep.kind);
-      }
+      // Keeping the edit resurrects the record; the tombstone goes with it.
+      final keep = switch (resolution) {
+        Resolution.takeRemote => theirs ?? survivor,
+        Resolution.takeLocal => mine ?? survivor,
+      };
+      entities[id] = keep.withJson(preserveLocalFields(keep.json, mine?.json));
+      tombstones.remove(id);
+      if (mine == null) stats._bump(stats.added, keep.kind);
       continue;
     }
 
@@ -289,22 +237,26 @@ MergePlan mergeDatabase(
     }
 
     // ── Both sides have it ─────────────────────────────────────────────────
-    if (mine.stamp == theirs.stamp) {
-      entities[id] = mine;
+    // Three outcomes, and only the last one ever reaches the user:
+    //   stamps differ           -> the newer wins, silently
+    //   stamps tie, same content-> nothing to do
+    //   stamps tie, content differs -> a question
+    if (mine.stamp != theirs.stamp) {
+      entities[id] = mine.stamp > theirs.stamp
+          ? mine
+          : theirs.withJson(preserveLocalFields(theirs.json, mine.json));
+      if (theirs.stamp > mine.stamp) stats._bump(stats.updated, theirs.kind);
       continue;
     }
 
     if (sameContent(mine.kind, mine.json, theirs.json)) {
-      // Same thing, differently stamped. Converging on the higher stamp is
-      // what stops this pair oscillating on every future exchange.
-      entities[id] = mine.stamp >= theirs.stamp
-          ? mine
-          : theirs.withJson(preserveLocalFields(theirs.json, mine.json));
+      entities[id] = mine;
       continue;
     }
 
-    final resolution =
-        answers[id] ?? _autoResolve(policy, mine.stamp, theirs.stamp);
+    // A genuine tie. Both devices reach this line together and neither stamp
+    // can break it, so it is the user's call.
+    final resolution = answers[id];
     if (resolution == null) {
       unresolved.add(
         Conflict(
@@ -312,13 +264,12 @@ MergePlan mergeDatabase(
           id: id,
           label: mine.label,
           reason: ConflictReason.editEdit,
-          suggested: mine.stamp >= theirs.stamp
-              ? Resolution.takeLocal
-              : Resolution.takeRemote,
           local: mine,
           remote: theirs,
         ),
       );
+      // Hold this device's copy until it is answered, so abandoning the review
+      // loses nothing.
       entities[id] = mine;
       stats._bump(stats.conflicted, mine.kind);
       continue;
@@ -327,20 +278,11 @@ MergePlan mergeDatabase(
     final winner = switch (resolution) {
       Resolution.takeLocal => mine,
       Resolution.takeRemote => theirs,
-      Resolution.keepBoth => mine.stamp >= theirs.stamp ? mine : theirs,
     };
-    final loser = identical(winner, mine) ? theirs : mine;
-
     entities[id] = identical(winner, mine)
         ? winner
         : winner.withJson(preserveLocalFields(winner.json, mine.json));
     if (!identical(winner, mine)) stats._bump(stats.updated, winner.kind);
-
-    if (resolution == Resolution.keepBoth && _canKeepBoth(mine.kind)) {
-      final copy = _materialiseCopy(loser, winner, mint, remoteLabel);
-      entities[copy.id] = copy;
-      stats._bump(stats.added, copy.kind);
-    }
   }
 
   // Registers resolve by stamp and are never raised as a conflict — a modal
@@ -365,105 +307,15 @@ MergePlan mergeDatabase(
   );
 }
 
+/// The copy that should stand against a tombstone.
+///
+/// Symmetric on purpose. On a stamp tie the two devices call this with the
+/// arguments the other way round, so anything positional would have each keep
+/// its own and never agree; the canonical content is the one thing both see
+/// identically, so that is what breaks it.
 StampedRecord? _laterOf(StampedRecord? a, StampedRecord? b) {
   if (a == null) return b;
   if (b == null) return a;
-  return a.stamp >= b.stamp ? a : b;
-}
-
-/// What the policy decides on its own. Null means the user has to be asked.
-Resolution? _autoResolve(ConflictPolicy policy, Stamp mine, Stamp theirs) =>
-    switch (policy) {
-      ConflictPolicy.ask => null,
-      ConflictPolicy.newestWins =>
-        mine >= theirs ? Resolution.takeLocal : Resolution.takeRemote,
-      ConflictPolicy.keepBoth => Resolution.keepBoth,
-    };
-
-Resolution? _autoResolveDelete({
-  required ConflictPolicy policy,
-  required StampedRecord edit,
-  required Tombstone grave,
-}) => switch (policy) {
-  ConflictPolicy.ask => null,
-  ConflictPolicy.newestWins =>
-    edit.stamp > grave.stamp ? Resolution.takeLocal : null,
-  ConflictPolicy.keepBoth => Resolution.keepBoth,
-};
-
-/// Keep-both only makes sense where a duplicate is useful.
-///
-/// Two "Dinner" categories or two "Produce" aisles are worse than losing a
-/// rename, and two plan entries in the same slot would break the assumption of
-/// one recipe per slot that the meal plan reads on. Those four take the newest
-/// instead, and Settings says so.
-bool _canKeepBoth(EntityKind kind) =>
-    kind == EntityKind.recipe || kind == EntityKind.pantryItem;
-
-/// Builds the second copy that keep-both promises.
-StampedRecord _materialiseCopy(
-  StampedRecord loser,
-  StampedRecord winner,
-  MergeMint mint,
-  String remoteLabel,
-) {
-  final newId = mint.copyId(winner.id, loser.stamp);
-  final json = Map<String, dynamic>.from(loser.json)..['id'] = newId;
-  final from = loser.stamp.by == winner.stamp.by ? 'copy' : 'from $remoteLabel';
-
-  if (loser.kind == EntityKind.recipe) {
-    json['title'] = '${loser.json['title']} ($from)';
-    _remintRecipeInternals(json, newId, mint);
-  } else {
-    json['name'] = '${loser.json['name']} ($from)';
-    // The copy deliberately loses its other known names: two pantry items both
-    // answering to "parmesan" would make name matching — and so import linking
-    // and clearing the shopping list — depend on which one was found first.
-    json['aliases'] = <String>[];
-  }
-
-  final stamp = mint.copyStamp(winner.stamp, loser.stamp);
-  stamp.writeInto(json);
-
-  return StampedRecord(
-    kind: loser.kind,
-    id: newId,
-    json: json,
-    stamp: stamp,
-    label: (json['title'] ?? json['name']) as String,
-  );
-}
-
-/// Re-mints a copied recipe's components, ingredients and steps so the copy
-/// does not share sub-record ids with the original.
-void _remintRecipeInternals(
-  Map<String, dynamic> json,
-  String newRecipeId,
-  MergeMint mint,
-) {
-  final componentIds = <String, String>{};
-
-  json['components'] = [
-    for (final c in (json['components'] as List? ?? []))
-      if (c is Map<String, dynamic>)
-        () {
-          final old = c['id'] as String;
-          final fresh = mint.nestedId(newRecipeId, old);
-          componentIds[old] = fresh;
-          return Map<String, dynamic>.from(c)
-            ..['id'] = fresh
-            ..['recipeId'] = newRecipeId;
-        }(),
-  ];
-
-  for (final key in const ['ingredients', 'steps']) {
-    json[key] = [
-      for (final e in (json[key] as List? ?? []))
-        if (e is Map<String, dynamic>)
-          Map<String, dynamic>.from(e)
-            ..['id'] = mint.nestedId(newRecipeId, e['id'] as String)
-            ..['componentId'] =
-                componentIds[e['componentId']] ?? e['componentId'],
-    ];
-  }
+  if (a.stamp != b.stamp) return a.stamp > b.stamp ? a : b;
+  return compareContent(a.kind, a.json, b.json) >= 0 ? a : b;
 }
