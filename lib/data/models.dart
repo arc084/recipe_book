@@ -27,6 +27,24 @@ String seedId(String kind, String key) =>
 /// [seedId] under a name the tests can reach without importing internals.
 String seedIdFor(String kind, String key) => seedId(kind, key);
 
+/// The one and only id a meal-plan slot can have.
+///
+/// Derived from the slot itself rather than minted at random, so two devices
+/// that fill the same slot while apart produce the *same* record and the merge
+/// resolves them on stamp. With random ids they were two different records, the
+/// merge rightly kept both, and `planAt` — which returns the first match —
+/// showed one while the other sat in the file keeping a stale recipe, ready to
+/// reappear the moment the visible one was cleared.
+///
+/// The consequence, and it is the whole reason this works: an entry can never
+/// be *moved* by mutating its date or slot, or its id would stop matching where
+/// it sits. A move is a delete and a create, which `movePlan` does.
+String planSlotId(DateTime date, MealSlot slot) => seedId(
+  'plan',
+  '${date.year}-${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}|${slot.name}',
+);
+
 /// A record the merge treats as a syncable unit.
 ///
 /// Every one of these carries when it last changed and which device changed

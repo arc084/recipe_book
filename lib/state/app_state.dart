@@ -662,17 +662,20 @@ class AppState extends ChangeNotifier {
     final existing = planAt(date, slot);
     if (existing != null) {
       existing.recipeId = recipeId;
-    } else {
-      library.plan.add(
-        PlanEntry(
-          id: newId(),
-          date: dayOnly(date),
-          slot: slot,
-          recipeId: recipeId,
-        ),
-      );
+      _touchLibrary(existing);
+      return;
     }
-    _touchLibrary();
+
+    final entry = PlanEntry(
+      // Derived from the slot, so a device that fills the same slot while apart
+      // creates the same record rather than a rival to it.
+      id: planSlotId(dayOnly(date), slot),
+      date: dayOnly(date),
+      slot: slot,
+      recipeId: recipeId,
+    );
+    library.plan.add(entry);
+    _touchLibrary(entry);
   }
 
   void clearPlan(DateTime date, MealSlot slot) {
@@ -700,14 +703,31 @@ class AppState extends ChangeNotifier {
     final to = planAt(toDate, toSlot);
 
     if (to == null) {
-      from.date = dayOnly(toDate);
-      from.slot = toSlot;
-    } else {
-      final tmp = from.recipeId;
-      from.recipeId = to.recipeId;
-      to.recipeId = tmp;
+      // A move cannot be a mutation of `date`/`slot`: the id is derived from
+      // them, and an entry whose id disagreed with where it sits would collide
+      // with anything the other device put in that slot. So the old entry dies
+      // and a new one is born, and both facts travel.
+      library.plan.remove(from);
+      _bury(EntityKind.planEntry, from.id);
+
+      final moved = PlanEntry(
+        id: planSlotId(dayOnly(toDate), toSlot),
+        date: dayOnly(toDate),
+        slot: toSlot,
+        recipeId: from.recipeId,
+      );
+      library.plan.add(moved);
+      _touchLibrary(moved);
+      return;
     }
-    _touchLibrary();
+
+    // A swap leaves both entries where they are and exchanges what they hold,
+    // so both ids stay right — but both records changed, and naming only one
+    // would leave the devices disagreeing about the other half.
+    final tmp = from.recipeId;
+    from.recipeId = to.recipeId;
+    to.recipeId = tmp;
+    _touchLibrary(from, [to]);
   }
 
   /// A day's calories and protein, summed from the same calculated macros the
