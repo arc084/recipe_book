@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:recipe_book/data/models.dart';
 import 'package:recipe_book/domain/sync/stamp.dart';
 import 'package:recipe_book/data/settings.dart';
+import 'package:recipe_book/domain/sync/conflict_summary.dart';
 import 'package:recipe_book/domain/sync/merge.dart';
 import 'package:recipe_book/state/app_state.dart';
 import 'package:recipe_book/sync/sync_client.dart';
@@ -252,13 +253,23 @@ void main() {
     final outcome = await joinSide.syncWith(peer, base);
 
     expect(outcome.conflicts, greaterThan(0));
-    expect(joinSide.pendingConflicts, isNotEmpty);
+    final review = joinSide.review!;
+    expect(review.conflicts, isNotEmpty);
+    // The review knows who it is about, for the screen's wording.
+    expect(review.source, isA<NetworkPeer>());
+    expect(review.source.peerName, peer.name);
     // Nothing was applied while the question stands.
     expect(b.recipe(id)!.notes, 'phone note');
 
     await joinSide.resolveWith({id: Resolution.takeRemote});
     expect(b.recipe(id)!.notes, 'laptop note');
-    expect(joinSide.pendingConflicts, isEmpty);
+    expect(joinSide.review, isNull);
+    // An answered session still counts as an exchange: the watermarks moved,
+    // so the next session does not replay the same question from scratch.
+    final recorded = b.settings.devices
+        .where((d) => d.id == peer.id)
+        .first;
+    expect(recorded.libraryWatermark, isNotNull);
   });
 
   test('what synced is still there after a restart', () async {

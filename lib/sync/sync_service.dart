@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/database.dart';
 import '../data/settings.dart';
+import '../domain/sync/conflict_summary.dart';
 import '../domain/sync/merge.dart';
 import '../state/app_state.dart';
 import 'discovery.dart';
@@ -55,10 +56,25 @@ class SyncService extends ChangeNotifier implements SyncHost {
   String? error;
   SyncOutcome? lastOutcome;
 
-  /// Conflicts waiting on the user. The session pauses here rather than
-  /// choosing for them.
-  List<Conflict> pendingConflicts = const [];
-  ({LibraryDatabase library, PantryDatabase pantry})? _pendingPeerState;
+  /// A merge paused on genuine ties, waiting for the user to pick sides.
+  ///
+  /// Survives [stop] on purpose: answering replays the snapshots held inside
+  /// it and applies locally -- no socket is needed -- and the peer converges
+  /// on the next exchange, whenever that is.
+  PendingReview? review;
+
+  /// Who the review came from, so answering it can advance their watermarks
+  /// the same way a clean session does.
+  PairedDevice? _reviewPeer;
+
+  /// Drops an unanswered review. Nothing was applied when it was raised, so
+  /// nothing is lost -- the same questions return on the next sync, which is
+  /// exactly right for questions nobody answered.
+  void cancelReview() {
+    review = null;
+    _reviewPeer = null;
+    notifyListeners();
+  }
 
   // ── SyncHost ────────────────────────────────────────────────────────────
 
@@ -99,11 +115,10 @@ class SyncService extends ChangeNotifier implements SyncHost {
     // Both sides took part, so both sides record it. Without this the device
     // that was synced *to* reads "never exchanged" no matter how many times it
     // has been, and its watermarks never advance — so it would keep re-asking
-    // about conflicts it has already settled.
-    if (pendingConflicts.isEmpty) {
-      for (final peer in _app.settings.devices) {
-        if (peer.id == _incomingFrom) _app.recordSync(peer, l, p);
-      }
+    // about conflicts it has already settled. A deferred merge always applies,
+    // so there is no conflicted case to guard against here.
+    for (final peer in _app.settings.devices) {
+      if (peer.id == _incomingFrom) _app.recordSync(peer, l, p);
     }
   }
 
@@ -228,7 +243,6 @@ class SyncService extends ChangeNotifier implements SyncHost {
   Future<SyncOutcome> syncWith(PairedDevice peer, Uri base) async {
     phase = SyncPhase.connecting;
     error = null;
-    pendingConflicts = const [];
     notifyListeners();
 
     try {
@@ -260,15 +274,19 @@ class SyncService extends ChangeNotifier implements SyncHost {
       phase = SyncPhase.merging;
       notifyListeners();
 
-      final outcome = await _mergeIn(exchange.library, exchange.pantry);
+      final outcome = await _mergeIn(
+        exchange.library,
+        exchange.pantry,
+        peer: peer,
+      );
 
-      if (pendingConflicts.isEmpty) {
+      if (review == null) {
         await _fetchMissingPhotos(client, peer, base);
         await _pushWantedPhotos(client, peer, base, exchange.wantedPhotos);
         _app.recordSync(peer, exchange.library, exchange.pantry);
       }
 
-      phase = pendingConflicts.isEmpty ? SyncPhase.done : SyncPhase.idle;
+      phase = review == null ? SyncPhase.done : SyncPhase.idle;
       lastOutcome = outcome;
       notifyListeners();
       return outcome;
@@ -282,20 +300,26 @@ class SyncService extends ChangeNotifier implements SyncHost {
 
   /// Finishes a session the user had to answer questions on.
   Future<SyncOutcome> resolveWith(Map<String, Resolution> answers) async {
-    final peerState = _pendingPeerState;
-    if (peerState == null) {
+    final pending = review;
+    if (pending == null) {
       throw StateError('There is nothing waiting to be resolved.');
     }
+    final peer = _reviewPeer;
     final outcome = await _mergeIn(
-      peerState.library,
-      peerState.pantry,
+      pending.peerLibrary,
+      pending.peerPantry,
       answers: answers,
       // The records the user chose between are re-stamped as this device's own
       // edit, so the answer is newer than either copy that caused the question
       // and the peer settles on the next exchange without being asked.
       restamp: answers.keys.toSet(),
     );
-    phase = pendingConflicts.isEmpty ? SyncPhase.done : SyncPhase.idle;
+    if (review == null && peer != null) {
+      // An answered session counts as an exchange: without this the peer's
+      // watermarks stall and the next session replays it all from scratch.
+      _app.recordSync(peer, pending.peerLibrary, pending.peerPantry);
+    }
+    phase = review == null ? SyncPhase.done : SyncPhase.idle;
     notifyListeners();
     return outcome;
   }
@@ -308,6 +332,7 @@ class SyncService extends ChangeNotifier implements SyncHost {
     Map<String, Resolution> answers = const {},
     Set<String> restamp = const {},
     bool deferTiesToLocal = false,
+    PairedDevice? peer,
   }) async {
     var plan = _app.planMerge(
       incomingLibrary,
@@ -331,18 +356,25 @@ class SyncService extends ChangeNotifier implements SyncHost {
     }
 
     if (unresolved.isNotEmpty) {
-      // Hold the peer's state so the answers can be replayed against exactly
-      // the same inputs — the merge is a function, so this is a replay rather
-      // than a half-applied mutation.
-      _pendingPeerState = (library: incomingLibrary, pantry: incomingPantry);
-      pendingConflicts = unresolved;
+      review = PendingReview(
+        conflicts: unresolved,
+        source: NetworkPeer(peerName: peer?.name ?? 'the other device'),
+        peerLibrary: incomingLibrary,
+        peerPantry: incomingPantry,
+      );
+      _reviewPeer = peer;
       notifyListeners();
       return SyncOutcome(received: 0, sent: 0, conflicts: unresolved.length);
     }
 
     await _app.applyMerge(plan.library, plan.pantry, restamp: restamp);
-    _pendingPeerState = null;
-    pendingConflicts = const [];
+    if (!deferTiesToLocal) {
+      // This applied merge supersedes any question still open from an earlier
+      // session over the same data. A deferred (incoming) merge does not: its
+      // ties were kept-local without restamping, so they still stand.
+      review = null;
+      _reviewPeer = null;
+    }
 
     return SyncOutcome(
       received: plan.library.stats.totalAdded + plan.pantry.stats.totalAdded,

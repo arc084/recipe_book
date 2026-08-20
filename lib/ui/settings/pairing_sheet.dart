@@ -10,6 +10,7 @@ import '../../sync/discovery.dart';
 import '../../sync/protocol.dart';
 import '../../sync/sync_client.dart';
 import '../../sync/sync_service.dart';
+import 'conflict_review.dart';
 import '../../theme/tokens.dart';
 import '../widgets/primitives.dart';
 
@@ -481,13 +482,29 @@ Future<void> runSyncSession(BuildContext context, PairedDevice peer) async {
     }
 
     final outcome = await sync.syncWith(peer, found.base);
+    // The review outlives the sockets — answering replays snapshots it holds
+    // and applies locally — so the connection is not kept open for it.
     await sync.stop();
 
     if (outcome.conflicts > 0) {
+      // The user pressed Sync now; they are right here. Ask now rather than
+      // sending them hunting for a banner.
+      final review = sync.review;
+      if (review != null && context.mounted) {
+        final answers = await ConflictReviewSheet.open(context, review);
+        if (answers != null) {
+          final settled = await sync.resolveWith(answers);
+          say(
+            settled.conflicts == 0
+                ? 'Settled. ${peer.name} takes your answers next sync.'
+                : '${settled.conflicts} still waiting in Settings.',
+          );
+          return;
+        }
+      }
       say(
-        outcome.message ??
-            '${outcome.conflicts} things changed in both places — '
-                'open Settings to sort them out.',
+        '${outcome.conflicts} left unanswered — the Review button in '
+        'Settings has them.',
       );
     } else {
       say(

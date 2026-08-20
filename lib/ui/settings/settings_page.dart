@@ -4,8 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../state/app_state.dart';
+import '../../sync/sync_service.dart';
 import '../../theme/tokens.dart';
 import '../widgets/primitives.dart';
+import 'conflict_review.dart';
 import 'pairing_sheet.dart';
 
 /// There is no onboarding — pairing and permissions live here from the first
@@ -93,6 +95,54 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // A review left unanswered mid-session waits here — the one place
+          // it can always be picked back up, since it outlives the session
+          // and the sockets that raised it.
+          Consumer<SyncService>(
+            builder: (context, sync, _) {
+              final review = sync.review;
+              if (review == null) return const SizedBox.shrink();
+              final n = review.conflicts.length;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Panel(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Icon(Icons.help_outline, size: 18, color: t.accent),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Text(
+                          n == 1
+                              ? 'One thing from ${review.source.peerName} is '
+                                  'waiting on you.'
+                              : '$n things from ${review.source.peerName} are '
+                                  'waiting on you.',
+                          style: TextStyle(
+                            fontFamily: t.bodyFamily,
+                            fontSize: 12.5,
+                            color: t.text,
+                          ),
+                        ),
+                      ),
+                      AppButton(
+                        'Review',
+                        kind: ButtonKind.primary,
+                        onPressed: () async {
+                          final answers = await ConflictReviewSheet.open(
+                            context,
+                            review,
+                            isPhone: widget.isPhone,
+                          );
+                          if (answers != null) await sync.resolveWith(answers);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
           Panel(
             padding: const EdgeInsets.all(16),
             child: Row(
