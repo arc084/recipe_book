@@ -18,6 +18,13 @@ final ctx = MigrationContext(
   fileModifiedAt: DateTime.utc(2026, 8, 1, 9, 30),
 );
 
+/// The fixtures under `test/fixtures/` are the **shipped seed corpus**, captured
+/// from a freshly reseeded app — the same recipes as `lib/data/seed.dart`.
+///
+/// They must stay that way. Regenerating them from an app holding real recipes
+/// would commit personal data to the repository, and the whole point of testing
+/// the migration against a captured file rather than a synthetic one is that it
+/// can be checked in and read by anyone.
 void main() {
   group('schema detection', () {
     test('an absent key means schema 1', () {
@@ -29,12 +36,12 @@ void main() {
     });
   });
 
-  group('migrating the real library', () {
+  group('migrating a seeded library', () {
     late Map<String, dynamic> before;
     late LibraryDatabase after;
 
     setUp(() {
-      before = fixture('library_v1_real.json');
+      before = fixture('library_v1_seeded.json');
       after = LibraryDatabase.fromJson(migrateLibrary(before, ctx));
     });
 
@@ -113,12 +120,12 @@ void main() {
     });
   });
 
-  group('migrating the real pantry', () {
+  group('migrating a seeded pantry', () {
     late Map<String, dynamic> before;
     late PantryDatabase after;
 
     setUp(() {
-      before = fixture('pantry_v1_real.json');
+      before = fixture('pantry_v1_seeded.json');
       after = PantryDatabase.fromJson(migratePantry(before, ctx));
     });
 
@@ -189,7 +196,7 @@ void main() {
 
     test('migrates a schema-1 file on load and keeps a backup', () async {
       final f = File('${dir.path}${Platform.pathSeparator}library.json');
-      f.writeAsStringSync(jsonEncode(fixture('library_v1_real.json')));
+      f.writeAsStringSync(jsonEncode(fixture('library_v1_seeded.json')));
 
       final loaded = await libraryStore(directory: dir).load(ctx);
       expect(loaded!.recipes, isNotEmpty);

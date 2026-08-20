@@ -620,7 +620,11 @@ abstract final class Seed {
       type: dinner,
       tags: ['high-protein', 'comfort'],
       servings: 4,
-      source: 'https://www.seriouseats.com',
+      // Deliberately not a real site. The method below is written for this
+      // app, not taken from anywhere — attributing it to a publisher whose
+      // recipe it is not would be a false claim about someone else's work,
+      // and the sample data ships in a public repository.
+      source: 'https://example.com/chicken-parmesan',
       minutes: 40,
       cooked: 4,
       notes:

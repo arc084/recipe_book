@@ -43,3 +43,13 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Signing material. An APK update must be signed with the same key as the
+# install it replaces, so this keystore is the one secret in the project that
+# actually matters — leaked, anyone could sign a build Android accepts as a
+# legitimate update to this app. Never commit it or the password beside it.
+key.properties
+android/key.properties
+*.jks
+*.keystore
+*.p12
