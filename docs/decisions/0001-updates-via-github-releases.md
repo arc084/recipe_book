@@ -1,6 +1,6 @@
 # 1. In-app updates come from GitHub Releases
 
-- **Status:** accepted
+- **Status:** accepted; private-repo consequence overtaken by events (see addendum)
 - **Date:** 2026-08-19
 - **Version at time of decision:** 0.7.0
 
@@ -74,3 +74,11 @@ GitHub route proves awkward, since the transport it needs already exists.
 
 Honest, zero infrastructure, no security surface. Rejected because it is not an
 update button; it is a label, and the app already has one beside the brand.
+
+## Addendum — 2026-08-23
+
+Overtaken by events: the repository went public with the open-sourcing at
+0.7.x, and the releases API on a public repository answers unauthenticated.
+Neither way out is needed — no artefact repo, no token, nothing secret
+anywhere, which is where option 1 was trying to get by other means. The
+check calls the public releases API on this repository directly.

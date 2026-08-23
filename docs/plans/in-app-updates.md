@@ -3,12 +3,12 @@
 Follows [decision 0001](../decisions/0001-updates-via-github-releases.md).
 Nothing here is built yet.
 
-## Blocked on one decision
+## The blocking decision, resolved
 
-Pick how the private repository is handled — a **separate public artefact repo**
-(preferred) or a **user-supplied read-only token**. See the decision record. The
-rest of this plan is the same either way; only `_releasesUri` and whether an
-`Authorization` header is sent change.
+This was blocked on how a private repository should be handled. The repo went
+public with the open-sourcing, so the releases API answers unauthenticated
+(see the addendum on decision 0001): `_releasesUri` points at this repository
+and no `Authorization` header exists.
 
 ## Shape
 
