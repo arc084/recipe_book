@@ -89,10 +89,14 @@ screen.
   works.
 - **Sync reachability.** "Sync now" can only find a device that currently has
   the pairing dialog open.
-- **`deviceId` is not persisted**, so pairing does not survive an app restart.
-- **Sync only works on one local network.** Syncing between networks is not
-  built.
-- **Cloud storage hooks** are the current goal and are not built yet.
+- **Local-network sync only works on one network.** Syncing between networks
+  over the internet is not built; a shared cloud folder is the way across.
+- **Joining a cloud folder has no baseline step.** A fresh install pointed at an
+  existing folder publishes its own seeded library, whose ids differ, and every
+  device ends up with a duplicate of everything. Export from an existing device
+  and import on the new one first.
+- **Cloud folders do not work on Android yet.** Android hands apps a document
+  reference rather than a path, which needs the Storage Access Framework.
 - Android release builds are signed with debug keys.
 
 ## Licence
