@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 /// runtime, which would mean another native plugin for one string. The cost is
 /// that it could drift from `pubspec.yaml` — so a test asserts the two agree,
 /// and will fail the build if one is bumped without the other.
-const String kAppVersion = '0.7.0';
+const String kAppVersion = '0.7.1';
 
 /// How the app was compiled.
 ///
