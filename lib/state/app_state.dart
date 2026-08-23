@@ -1060,6 +1060,15 @@ class AppState extends ChangeNotifier {
     return wanted.toList();
   }
 
+  /// Hashes this device actually holds the bytes for.
+  ///
+  /// The mirror of [missingPhotoHashes]: what this device can offer, rather
+  /// than what it needs. A transport pushes the difference.
+  List<String> localPhotoHashes() => [
+    for (final r in library.recipes)
+      if (r.photoHash != null && r.photoPath != null) r.photoHash!,
+  ];
+
   /// Stores bytes fetched from a peer and points every recipe expecting that
   /// hash at the local copy.
   Future<void> storePhotoBytes(String hash, List<int> bytes) async {

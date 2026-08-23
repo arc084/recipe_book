@@ -67,6 +67,28 @@ class SyncService extends ChangeNotifier implements SyncHost {
   /// the same way a clean session does.
   PairedDevice? _reviewPeer;
 
+  /// Raises a review from a transport with no live peer behind it.
+  ///
+  /// The folder transport reads a snapshot someone wrote earlier, so there is
+  /// nobody to talk back to — [_reviewPeer] stays null and `resolveWith` skips
+  /// the watermark bookkeeping, which is peer-specific. Everything else, the
+  /// screen included, is the same.
+  void openReview({
+    required List<Conflict> conflicts,
+    required LibraryDatabase peerLibrary,
+    required PantryDatabase peerPantry,
+    required ReviewSource source,
+  }) {
+    review = PendingReview(
+      conflicts: conflicts,
+      source: source,
+      peerLibrary: peerLibrary,
+      peerPantry: peerPantry,
+    );
+    _reviewPeer = null;
+    notifyListeners();
+  }
+
   /// Drops an unanswered review. Nothing was applied when it was raised, so
   /// nothing is lost -- the same questions return on the next sync, which is
   /// exactly right for questions nobody answered.

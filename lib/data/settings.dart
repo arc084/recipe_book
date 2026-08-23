@@ -152,6 +152,8 @@ String get defaultDeviceName => Platform.isAndroid ? 'This phone' : 'This PC';
 class AppSettings {
   AppSettings({
     this.deviceId,
+    this.cloudFolderPath,
+    this.cloudSyncEnabled = false,
     this.themeMode = ThemeMode.dark,
     String? deviceName,
     List<PairedDevice>? devices,
@@ -172,6 +174,21 @@ class AppSettings {
   /// anything is loaded or stamped — see `AppState.load`.
   String? deviceId;
 
+  /// A folder some other program — Dropbox, OneDrive, Syncthing — keeps in
+  /// step across machines.
+  ///
+  /// Per device on purpose, and never synced: the same cloud folder is mounted
+  /// at a different path on every machine, so copying this between devices
+  /// would point one of them at a directory that does not exist.
+  String? cloudFolderPath;
+
+  /// Whether to actually use it. Kept separate from the path so turning sync
+  /// off does not make the user find the folder again to turn it back on.
+  bool cloudSyncEnabled;
+
+  bool get hasCloudFolder =>
+      cloudSyncEnabled && (cloudFolderPath?.isNotEmpty ?? false);
+
   ThemeMode themeMode;
 
   /// What the other device calls this one in its paired list. Defaults to
@@ -182,6 +199,9 @@ class AppSettings {
   DateTime? lastSync;
 
   factory AppSettings.fromJson(Map<String, dynamic> j) => AppSettings(
+    deviceId: j['deviceId'] as String?,
+    cloudFolderPath: j['cloudFolderPath'] as String?,
+    cloudSyncEnabled: j['cloudSyncEnabled'] as bool? ?? false,
     themeMode: ThemeMode.values.firstWhere(
       (m) => m.name == j['themeMode'],
       orElse: () => ThemeMode.dark,
@@ -202,6 +222,13 @@ class AppSettings {
 
   Map<String, dynamic> toJson() => {
     'schema': 1,
+    // Without this the id was minted fresh on every launch, so the device
+    // changed identity each time it started: stamps disagreed about who wrote
+    // them, and a peer's stored id stopped matching, which broke pairing
+    // across a restart.
+    'deviceId': deviceId,
+    'cloudFolderPath': cloudFolderPath,
+    'cloudSyncEnabled': cloudSyncEnabled,
     'themeMode': themeMode.name,
     'deviceName': deviceName,
     'devices': [for (final d in devices) d.toJson()],
