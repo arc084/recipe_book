@@ -33,6 +33,10 @@ class CloudOutcome {
   /// Not an error, just a reason nothing happened.
   final bool unavailable;
 
+  /// Nothing came in and nothing went out.
+  ///
+  /// Publishing our own post does not count as activity: every run writes one,
+  /// so counting it would mean the app never once said it was up to date.
   bool get isEmpty =>
       received == 0 && photosPulled == 0 && photosPushed == 0 && !unavailable;
 
@@ -42,7 +46,14 @@ class CloudOutcome {
       return '$conflicts ${conflicts == 1 ? 'thing' : 'things'} changed in two '
           'places at once — pick which to keep.';
     }
-    if (isEmpty) return 'Already up to date.';
+    if (isEmpty) {
+      return devicesRead == 0
+          // Worth distinguishing: an empty folder usually means the
+          // other device has not synced into it yet, which looks
+          // identical to "nothing changed" unless it is said out loud.
+          ? 'Nothing else has synced to that folder yet.'
+          : 'Already up to date.';
+    }
     final parts = <String>[
       if (received > 0) '$received in',
       if (photosPulled > 0) '$photosPulled ${_photos(photosPulled)} in',
