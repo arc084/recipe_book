@@ -106,6 +106,28 @@ void main() {
       expect(seen.last, bytes.length);
     });
 
+    test('a cancelled download stops and leaves no partial file behind',
+        () async {
+      final bytes = List<int>.generate(4096, (i) => i % 256);
+      final updater = Updater(
+        httpClient: MockClient(
+          (_) async => http.Response.bytes(bytes, 200),
+        ),
+      );
+
+      var cancelled = false;
+      await expectLater(
+        updater.download(
+          update(bytes.length),
+          into: dir,
+          onProgress: (received, total) => cancelled = true,
+          isCancelled: () => cancelled,
+        ),
+        throwsA(isA<DownloadCancelled>()),
+      );
+      expect(dir.listSync(), isEmpty);
+    });
+
     test('a failed download throws and leaves no partial file behind',
         () async {
       final updater = Updater(

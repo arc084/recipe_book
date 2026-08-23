@@ -16,6 +16,13 @@ class DownloadFailure implements Exception {
   String toString() => reason;
 }
 
+/// The user pressed cancel; nothing is wrong. Distinct from
+/// [DownloadFailure] so the Settings row can fall quietly back to
+/// "available" instead of showing an error that never happened.
+class DownloadCancelled implements Exception {
+  const DownloadCancelled();
+}
+
 /// The fetching half of the update check: talk to the releases API, hand
 /// the payload to [checkRelease], stream an artefact to disk.
 ///
@@ -32,6 +39,8 @@ class Updater {
 
   final http.Client _http;
   final Uri _releasesUri;
+
+  void close() => _http.close();
 
   /// Asks the releases API what the newest release is and compares it
   /// against [running]. Never throws: whatever goes wrong comes back as a
@@ -71,6 +80,7 @@ class Updater {
     AvailableUpdate update, {
     required Directory into,
     void Function(int received, int total)? onProgress,
+    bool Function()? isCancelled,
   }) async {
     final http.StreamedResponse response;
     try {
@@ -93,9 +103,11 @@ class Updater {
     var received = 0;
     try {
       await for (final chunk in response.stream) {
+        if (isCancelled?.call() ?? false) throw const DownloadCancelled();
         sink.add(chunk);
         received += chunk.length;
         onProgress?.call(received, total);
+        if (isCancelled?.call() ?? false) throw const DownloadCancelled();
       }
       await sink.flush();
       await sink.close();
@@ -103,6 +115,7 @@ class Updater {
       // Half an artefact must not survive to be installed.
       await sink.close();
       if (file.existsSync()) file.deleteSync();
+      if (e is DownloadCancelled) rethrow;
       throw DownloadFailure('The download broke off partway: $e');
     }
     return file;
