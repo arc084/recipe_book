@@ -1,96 +1,107 @@
 # Recipe Book
 
-A private, local-only recipe manager for **Windows desktop and Android**, with
-groceries, macro tracking and meal planning. No accounts and no cloud: the
-library is a file on your own machine that syncs directly to paired devices over
-the local network.
+An open-source **kitchen manager** for Windows desktop and Android: a group of
+cooking tools that work together rather than five separate apps that happen to
+sit on the same device.
 
-**Version 0.7.0.** 1.0 is reserved for the release where every planned feature is
-built and debugged — the number is deliberately below it, and a test fails if the
-major version is raised without that being true.
+- **Recipe book** — recipes grouped into components (Cutlets, Breading, Fry &
+  finish), with continuous step numbering across them
+- **Pantry** — what you have, by Fridge / Pantry / Freezer, with in-stock state,
+  the loose names recipes use for each item, and the macros they carry
+- **Groceries** — ordered the way you walk a shop, not the way recipes were
+  written
+- **Meal planning** — a week grid on the desktop, a day at a time on the phone
+- **Macros tracking** — the number that ties the rest together
 
-## Where things are
+The pieces are connected on purpose. Macros come from your pantry items, not
+from a recipe's own listed figures, so correcting one number in the pantry
+updates every recipe drawing on it. Missing ingredients flow from a recipe into
+groceries, and checking them off puts them back in the pantry.
 
-```
-lib/
-  app_version.dart      the version and build flavour shown beside the brand
-  data/                 models, the two JSON databases, seed, migrations
-  domain/               pure logic — macros, units, and the sync merge
-  domain/sync/          stamps, tombstones, the merge engine, repair
-  sync/                 the transport: protocol, server, client, discovery
-  state/                AppState — every mutation and both databases
-  ui/                   desktop screens, ui/mobile/ for the phone
-docs/
-  decisions/            why things are the way they are
-  plans/                work that is designed but not built
-test/                   139 tests, no network and no device needed
-```
+Your data is **yours and local by default**: two plain JSON files on your own
+machine. Cloud storage is an *optional hook* — point it at a folder your own
+provider syncs, or don't, and nothing about the app changes. There are no
+accounts, and there is no service to sign up to.
 
-Two databases, deliberately separate and backed up independently: `library.json`
-(recipes, meal types, aisles, groceries, plan) and `pantry.json` (ingredients and
-their macros). Both live in the app-support directory, never in the repo.
+## Status
+
+**0.7.0 — pre-1.0 and under active development.** 1.0.0 is reserved for the
+release where every planned feature is built and debugged, so the version number
+itself tells you the app is still being built. Expect rough edges; see
+[Known gaps](#known-gaps).
 
 ## Building
 
-Requires the Flutter SDK on `PATH`. `flutter doctor` should be clean for the
-platform you are targeting.
+Needs the Flutter SDK (3.44+) on `stable`.
 
 ```bash
 flutter pub get
-flutter test
-flutter build windows --release
-flutter build apk --release
+flutter run -d windows     # or: flutter run -d <android-device-id>
 ```
 
-The Windows build lands in `build/windows/x64/runner/Release/`. **The whole
-folder is the app** — the `.exe` is 0.1 MB and will not run without the DLLs and
-`data/` beside it.
-
-For day-to-day work use `flutter run -d windows` or `flutter run -d <device>`,
-which is slower to start but gives hot reload. To look at the phone layouts
-without a phone attached:
+Release builds:
 
 ```bash
-flutter run -d windows --dart-define=MOBILE_PREVIEW=true
+flutter build windows --release      # build/windows/x64/runner/Release/
+flutter build apk --release          # build/app/outputs/flutter-apk/
 ```
 
-That swaps the frame to the Android one at the design's 428×908. It does not
-emulate Android behaviour — only layout.
+The Windows release is a **portable folder** — the `.exe` needs the DLLs and
+`data/` beside it, so copy the whole `Release` directory rather than the
+executable alone.
 
-## Setting up a second machine
+Windows desktop builds additionally need Visual Studio with the "Desktop
+development with C++" workload. Android builds need the Android SDK
+(compileSdk 36) and a JDK 17 or 21.
 
-Things that are not obvious and cost real time the first time:
+```bash
+flutter test        # 178 tests, no device required
+flutter analyze
+```
 
-- **Windows desktop builds need Visual Studio** with the "Desktop development
-  with C++" workload — Build Tools alone is not what `flutter doctor` looks for.
-- **Windows needs Developer Mode enabled** or plugin builds fail with
-  "Building with plugins requires symlink support".
-- **Android needs its own SDK** with platform 36 and build-tools 36 — Flutter
-  3.44 targets `compileSdk 36`. An SDK bundled with Visual Studio is likely far
-  older and lives under `Program Files`, so every package install needs
-  elevation. A user-local SDK at `%LOCALAPPDATA%\Android\Sdk` avoids that.
-- **`sdkmanager --licenses` cannot always be driven from a script.** If piping
-  `y` does not reach it, write the SHA-1 hash files into `<sdk>/licenses/`
-  directly.
+## Where your data lives
 
-## Design
+Two JSON files, deliberately separate so a recipe library can be replaced
+without touching the pantry that gives it its numbers:
 
-Built from a design handoff with two themes on identical layouts — **Nocturne**
-(dark) and **Organic** (light). Nothing moves between them; only tokens change.
+| File | Holds |
+| --- | --- |
+| `library.json` | recipes, meal types, aisles, groceries, meal plan |
+| `pantry.json` | ingredients, their macros and their other known names |
+| `settings.json` | per-device settings — never synced |
 
-The tonal ramps **invert** between the themes, so a ramp step does not mean the
-same thing in both: `neutral300` is a highlight on the dark ground and nearly
-invisible on the cream one. Reach for the semantic roles in
-`lib/theme/tokens.dart`, not a ramp index — and carry radius and spacing as theme
-values too, since those are the biggest source of drift between the modes.
+They sit in the platform's app-support directory: on Windows,
+`%APPDATA%\io.github.arc084\recipe_book\data`.
 
-## The rule that governs the numbers
+## Syncing
 
-A recipe's macros are **always** calculated from its ingredients' linked pantry
-items, scaled by quantity and basis. A recipe's own listed figures are shown only
-during import, marked as about to be replaced. Where listed and calculated
-disagree, calculated wins. An ingredient with no macros is flagged, never counted
-as zero.
+Direct device-to-device over the local network — no account, no server. Pairing
+is a six-digit code typed on the joining device; requests are HMAC-signed with a
+key both sides derive independently, so the code itself never crosses the
+network. Conflicts resolve by newest-wins, and the one case timestamps cannot
+settle — two copies changed at the same instant — is put to you on a review
+screen.
 
-Counts, totals and step numbering must agree on every screen they appear on.
-Treat a mismatch as a bug.
+## Known gaps
+
+Honest about what is not built yet:
+
+- **Cook mode voice commands and keep-screen-awake.** The UI lists both; neither
+  works.
+- **Sync reachability.** "Sync now" can only find a device that currently has
+  the pairing dialog open.
+- **`deviceId` is not persisted**, so pairing does not survive an app restart.
+- **Sync only works on one local network.** Syncing between networks is not
+  built.
+- **Cloud storage hooks** are the current goal and are not built yet.
+- Android release builds are signed with debug keys.
+
+## Licence
+
+[Apache License 2.0](LICENSE).
+
+## Credits
+
+The interface was designed with Claude Design and built with Claude Code. Fonts
+are Inter, Figtree and Baloo 2, all under the SIL Open Font License and bundled
+in `assets/fonts/`.

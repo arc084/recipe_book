@@ -1,4 +1,4 @@
-package com.aslon.recipe_book
+package io.github.arc084.recipe_book
 
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
