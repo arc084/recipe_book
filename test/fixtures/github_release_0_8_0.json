@@ -1,0 +1,18 @@
+{
+  "tag_name": "v0.8.0",
+  "name": "0.8.0",
+  "body": "- Recipe editing on Android\n- The update button you are using right now",
+  "published_at": "2026-08-30T18:00:00Z",
+  "assets": [
+    {
+      "name": "recipe-book-0.8.0-windows-x64.zip",
+      "size": 13371337,
+      "browser_download_url": "https://github.com/arc084/recipe_book/releases/download/v0.8.0/recipe-book-0.8.0-windows-x64.zip"
+    },
+    {
+      "name": "recipe-book-0.8.0-android.apk",
+      "size": 24685000,
+      "browser_download_url": "https://github.com/arc084/recipe_book/releases/download/v0.8.0/recipe-book-0.8.0-android.apk"
+    }
+  ]
+}
