@@ -1,7 +1,9 @@
 # Recipe Book
 
-An open-source **kitchen manager** for Windows desktop and Android: a group of
-cooking tools that work together.
+My open-source **kitchen manager** for Windows desktop and Android: a group of
+cooking tools that work together. I made this mostly for myself, but if you
+happened to have stumbled upon this for whatever reason feel free to use as
+you'd like.
 
 - **Recipe book** — recipes grouped into components (Cutlets, Breading, Fry &
   finish), with continuous step numbering across them
