@@ -164,9 +164,8 @@ class _RecipeBookAppState extends State<RecipeBookApp>
 
 /// Picks the frame.
 ///
-/// The two platforms carry the same content and the same numbers; what differs
-/// is navigation — a permanent sidebar against a bottom tab bar — and that
-/// editing a recipe is desktop only.
+/// The two platforms carry the same content and the same numbers; what
+/// differs is navigation — a permanent sidebar against a bottom tab bar.
 class _Frame extends StatelessWidget {
   const _Frame();
 

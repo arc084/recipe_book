@@ -525,14 +525,6 @@ class _RecipeEditViewState extends State<RecipeEditView> {
             ),
           ),
           const Spacer(),
-          Text(
-            'Editing is desktop only.',
-            style: TextStyle(
-              fontFamily: t.bodyFamily,
-              fontSize: 11,
-              color: t.textFaint,
-            ),
-          ),
         ],
       ),
     );

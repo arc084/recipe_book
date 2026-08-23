@@ -206,7 +206,6 @@ class _RecipePageState extends State<RecipePage> {
                   onPressed: () {},
                 ),
                 const SizedBox(width: 8),
-                // Editing is desktop only, which is where we are.
                 AppButton(
                   'Edit',
                   onPressed: () =>

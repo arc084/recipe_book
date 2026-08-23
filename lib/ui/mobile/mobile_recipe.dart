@@ -9,12 +9,13 @@ import '../../theme/tokens.dart';
 import '../cook/cook_mode.dart';
 import '../widgets/photo_picker.dart';
 import '../widgets/primitives.dart';
+import 'mobile_recipe_edit.dart';
 import 'mobile_widgets.dart';
 
 /// A recipe on Android: the two desktop columns stacked under the photo.
 ///
-/// The phone reads, cooks and shops. There is no edit mode here — that is
-/// desktop only.
+/// The phone reads, cooks, shops — and edits, through the same edit model as
+/// the desktop, laid out in [MobileRecipeEditPage].
 class MobileRecipePage extends StatefulWidget {
   const MobileRecipePage({super.key, required this.recipeId});
 
@@ -159,6 +160,14 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
+                    AppButton(
+                      'Edit',
+                      height: 44,
+                      fontSize: 14,
+                      onPressed: () =>
+                          MobileRecipeEditPage.open(context, recipe.id),
+                    ),
+                    const SizedBox(width: 10),
                     if (cov.toBuy.isNotEmpty) ...[
                       Expanded(
                         child: AppButton(
@@ -435,8 +444,9 @@ class _MobileRecipePageState extends State<MobileRecipePage> {
 
 /// Writing a recipe out by hand on the phone.
 ///
-/// This is *creation*, not the edit mode — title, ingredients and steps only.
-/// Components, and any later change to a saved recipe, are the desktop's job.
+/// This is quick *creation* — title, ingredients and steps, one component.
+/// Anything more structured hands off to [MobileRecipeEditPage], which is
+/// the full editor.
 class MobileHandEntryPage extends StatefulWidget {
   const MobileHandEntryPage({super.key, required this.recipeId});
 
@@ -566,14 +576,28 @@ class _MobileHandEntryPageState extends State<MobileHandEntryPage> {
                     },
                   ),
                   const SizedBox(height: 18),
-                  Text(
-                    'Components — Cutlets, Breading and so on — are added on '
-                    'the desktop.',
-                    style: TextStyle(
-                      fontFamily: t.bodyFamily,
-                      fontSize: 11.5,
-                      height: 1.5,
-                      color: t.textFaint,
+                  // Components, tags and the rest live in the full editor;
+                  // handing off keeps what was typed here.
+                  GestureDetector(
+                    onTap: () {
+                      _draft.title = _title.text.trim();
+                      app.saveRecipe(_draft);
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          fullscreenDialog: true,
+                          builder: (_) =>
+                              MobileRecipeEditPage(recipeId: _draft.id),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      'Need components or tags? Continue in the full editor.',
+                      style: TextStyle(
+                        fontFamily: t.bodyFamily,
+                        fontSize: 11.5,
+                        height: 1.5,
+                        color: t.accent,
+                      ),
                     ),
                   ),
                 ],
