@@ -47,6 +47,15 @@ class MalformedRelease extends ReleaseCheck {
   final String reason;
 }
 
+/// The check never got a release to read — the network half's outcome,
+/// never the pure comparison's. Kept in the same family because the
+/// Settings row shows exactly one of these, whatever went wrong.
+class CheckFailed extends ReleaseCheck {
+  const CheckFailed(this.reason);
+
+  final String reason;
+}
+
 /// A release newer than what is running.
 class AvailableUpdate {
   const AvailableUpdate({
