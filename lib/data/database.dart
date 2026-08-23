@@ -258,7 +258,20 @@ class JsonStore<T> {
     await f.copy(backup.path);
   }
 
-  Future<void> save(T value) async {
+  /// The write currently on disk's doorstep. Saves queue behind it: two
+  /// interleaved writers share one `.tmp`, and the first rename takes the
+  /// file out from under the second. The debounce timer and a window-close
+  /// flush can genuinely overlap, so this is not test paranoia.
+  Future<void> _lastWrite = Future.value();
+
+  Future<void> save(T value) {
+    final write = _lastWrite.then((_) => _write(value));
+    // A failed write surfaces to its own caller; the queue moves on.
+    _lastWrite = write.then((_) {}, onError: (_) {});
+    return write;
+  }
+
+  Future<void> _write(T value) async {
     final f = await file();
     final tmp = File('${f.path}.tmp');
     await tmp.writeAsString(
