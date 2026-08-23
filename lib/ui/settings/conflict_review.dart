@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/models.dart';
 import '../../domain/sync/conflict_summary.dart';
 import '../../domain/sync/merge.dart';
+import '../../domain/sync/tombstone.dart';
 import '../../theme/tokens.dart';
 import '../widgets/primitives.dart';
 
@@ -164,18 +166,179 @@ class _ConflictReviewSheetState extends State<ConflictReviewSheet> {
   }
 }
 
+/// A draft against what the store now holds — the editor's stale save.
+///
+/// A sync landed while the recipe was open, so the user has been handed a
+/// merge conflict by their own two devices. Same card, same difference rows,
+/// same two answers as a merge review; the only difference is that there is
+/// exactly one record and no held peer database to replay.
+///
+/// Returns how to resolve it, or null when the user backed out — the draft
+/// then stays open, still unsaved.
+Future<Resolution?> reviewStaleDraft(
+  BuildContext context, {
+  required Recipe draft,
+  required Recipe? stored,
+  bool isPhone = false,
+}) {
+  final conflict = Conflict(
+    kind: EntityKind.recipe,
+    id: draft.id,
+    label: draft.title,
+    reason: stored == null ? ConflictReason.editDelete : ConflictReason.editEdit,
+    local: StampedRecord(
+      kind: EntityKind.recipe,
+      id: draft.id,
+      json: draft.toJson(),
+      stamp: draft.stamp,
+      label: draft.title,
+    ),
+    remote: stored == null
+        ? null
+        : StampedRecord(
+            kind: EntityKind.recipe,
+            id: stored.id,
+            json: stored.toJson(),
+            stamp: stored.stamp,
+            label: stored.title,
+          ),
+  );
+
+  final sheet = _StaleDraftSheet(conflict: conflict);
+
+  if (isPhone) {
+    return Navigator.of(context, rootNavigator: true).push<Resolution>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: context.tokens.ground,
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: sheet,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  final t = context.tokens;
+  return showDialog<Resolution>(
+    context: context,
+    builder: (_) => Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 640),
+        child: Container(
+          padding: EdgeInsets.all(t.space(6)),
+          decoration: BoxDecoration(
+            color: t.surface,
+            borderRadius: t.brLarge,
+            boxShadow: t.shadowLg,
+          ),
+          child: sheet,
+        ),
+      ),
+    ),
+  );
+}
+
+class _StaleDraftSheet extends StatefulWidget {
+  const _StaleDraftSheet({required this.conflict});
+
+  final Conflict conflict;
+
+  @override
+  State<_StaleDraftSheet> createState() => _StaleDraftSheetState();
+}
+
+class _StaleDraftSheetState extends State<_StaleDraftSheet> {
+  Resolution? _chosen;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final deleted = widget.conflict.reason == ConflictReason.editDelete;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'This recipe changed while you were editing',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        SizedBox(height: t.space(2)),
+        Text(
+          deleted
+              ? 'A sync deleted it in the meantime. Saving would bring it '
+                    'back; letting go keeps it deleted.'
+              : 'A sync brought another device’s version in the '
+                    'meantime. Pick which one stays — the other is '
+                    'overwritten.',
+          style: TextStyle(
+            fontFamily: t.bodyFamily,
+            fontSize: 12.5,
+            height: 1.5,
+            color: t.textMuted,
+          ),
+        ),
+        SizedBox(height: t.space(4)),
+        Flexible(
+          child: SingleChildScrollView(
+            child: _ConflictCard(
+              conflict: widget.conflict,
+              peerName: 'another device',
+              chosen: _chosen,
+              onChoose: (r) => setState(() => _chosen = r),
+              localName: 'Keep my edit',
+              remoteName: deleted ? 'Let it stay deleted' : 'Take the synced one',
+            ),
+          ),
+        ),
+        SizedBox(height: t.space(4)),
+        Row(
+          children: [
+            const Spacer(),
+            AppButton(
+              'Keep editing',
+              onPressed: () => Navigator.of(context).pop(null),
+            ),
+            SizedBox(width: t.space(2)),
+            AppButton(
+              'Apply',
+              kind: ButtonKind.primary,
+              onPressed: _chosen == null
+                  ? null
+                  : () => Navigator.of(context).pop(_chosen),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class _ConflictCard extends StatelessWidget {
   const _ConflictCard({
     required this.conflict,
     required this.peerName,
     required this.chosen,
     required this.onChoose,
+    this.localName,
+    this.remoteName,
   });
 
   final Conflict conflict;
   final String peerName;
   final Resolution? chosen;
   final ValueChanged<Resolution> onChoose;
+
+  /// Words for the two answers when the merge's defaults don't fit — the
+  /// stale-draft review says "Keep my edit", not "Keep this device's".
+  final String? localName;
+  final String? remoteName;
 
   @override
   Widget build(BuildContext context) {
@@ -210,8 +373,13 @@ class _ConflictCard extends StatelessWidget {
               deleted
                   ? (conflict.localDelete != null
                         ? 'Deleted here, edited on $peerName at the same moment.'
-                        : 'Edited here, deleted on $peerName at the same moment.')
-                  : 'Edited in both places at the same moment.',
+                        : (conflict.remote == null && localName != null
+                              ? 'Edited here, deleted by the sync.'
+                              : 'Edited here, deleted on $peerName at the '
+                                    'same moment.'))
+                  : (localName != null
+                        ? 'Your edit against the version the sync brought.'
+                        : 'Edited in both places at the same moment.'),
               style: TextStyle(
                 fontFamily: t.bodyFamily,
                 fontSize: 11.5,
@@ -230,7 +398,7 @@ class _ConflictCard extends StatelessWidget {
             Row(
               children: [
                 Tag(
-                  "Keep this device's",
+                  localName ?? "Keep this device's",
                   style: chosen == Resolution.takeLocal
                       ? TagStyle.accent
                       : TagStyle.outline,
@@ -238,7 +406,7 @@ class _ConflictCard extends StatelessWidget {
                 ),
                 SizedBox(width: t.space(2)),
                 Tag(
-                  "Take $peerName's",
+                  remoteName ?? "Take $peerName's",
                   style: chosen == Resolution.takeRemote
                       ? TagStyle.accent
                       : TagStyle.outline,
