@@ -155,6 +155,7 @@ class AppSettings {
     this.cloudFolderPath,
     this.cloudSyncEnabled = false,
     this.themeMode = ThemeMode.dark,
+    this.autofillFromLabels = true,
     String? deviceName,
     List<PairedDevice>? devices,
     List<PermissionState>? permissions,
@@ -191,6 +192,11 @@ class AppSettings {
 
   ThemeMode themeMode;
 
+  /// Whether picking a label-search result writes the macros form, or only
+  /// shows the reference card to copy from. On by default; the search itself
+  /// is always available either way.
+  bool autofillFromLabels;
+
   /// What the other device calls this one in its paired list. Defaults to
   /// something true of the platform rather than "This PC" on a phone.
   String deviceName;
@@ -206,6 +212,7 @@ class AppSettings {
       (m) => m.name == j['themeMode'],
       orElse: () => ThemeMode.dark,
     ),
+    autofillFromLabels: j['autofillFromLabels'] as bool? ?? true,
     deviceName: j['deviceName'] as String?,
     devices: [
       for (final d in (j['devices'] as List? ?? []))
@@ -230,6 +237,7 @@ class AppSettings {
     'cloudFolderPath': cloudFolderPath,
     'cloudSyncEnabled': cloudSyncEnabled,
     'themeMode': themeMode.name,
+    'autofillFromLabels': autofillFromLabels,
     'deviceName': deviceName,
     'devices': [for (final d in devices) d.toJson()],
     'permissions': [for (final p in permissions) p.toJson()],
