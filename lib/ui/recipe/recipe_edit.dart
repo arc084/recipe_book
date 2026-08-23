@@ -8,12 +8,17 @@ import '../../state/nav.dart';
 import '../../theme/tokens.dart';
 import '../library/library_page.dart' show promptForText;
 import '../widgets/primitives.dart';
+import 'recipe_edit_controller.dart';
 
 /// Edit mode.
 ///
 /// The layout does not move — the same two columns, with every field writable
 /// in place. Quantity, unit and name stay separate fields so scaling and
 /// pantry matching keep working. The footer states what is unsaved.
+///
+/// The edit itself — draft, dirty tracking, every mutation — lives in
+/// [RecipeEditController], shared with the phone. This file is only the
+/// desktop's two-column arrangement of it.
 class RecipeEditView extends StatefulWidget {
   const RecipeEditView({super.key, required this.recipeId});
 
@@ -24,54 +29,26 @@ class RecipeEditView extends StatefulWidget {
 }
 
 class _RecipeEditViewState extends State<RecipeEditView> {
-  /// A deep copy, so abandoning the edit leaves the saved recipe untouched.
-  late Recipe _draft;
-  late Recipe _original;
-  bool _dirty = false;
+  late final RecipeEditController _controller;
+
+  Recipe get _draft => _controller.draft;
 
   @override
   void initState() {
     super.initState();
-    final saved = context.read<AppState>().recipe(widget.recipeId)!;
-    _original = saved;
-    _draft = saved.copy();
+    _controller = RecipeEditController(
+      context.read<AppState>().recipe(widget.recipeId)!,
+    );
+    _controller.addListener(() => setState(() {}));
   }
 
-  void _change(VoidCallback fn) {
-    setState(() {
-      fn();
-      _dirty = true;
-    });
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
-  int get _changeCount {
-    var n = 0;
-    if (_draft.title != _original.title) n++;
-    if (_draft.mealTypeId != _original.mealTypeId) n++;
-    if (_draft.servings != _original.servings) n++;
-    if (_draft.totalMinutes != _original.totalMinutes) n++;
-    if (_draft.notes != _original.notes) n++;
-    if (_draft.tags.join(',') != _original.tags.join(',')) n++;
-    if (_draft.ingredients.length != _original.ingredients.length) n++;
-    if (_draft.steps.length != _original.steps.length) n++;
-    if (_draft.components.length != _original.components.length) n++;
-    for (final line in _draft.ingredients) {
-      final was = _original.ingredients
-          .where((i) => i.id == line.id)
-          .firstOrNull;
-      if (was == null) continue;
-      if (was.name != line.name ||
-          was.quantity != line.quantity ||
-          was.unit != line.unit) {
-        n++;
-      }
-    }
-    for (final step in _draft.steps) {
-      final was = _original.steps.where((s) => s.id == step.id).firstOrNull;
-      if (was != null && was.text != step.text) n++;
-    }
-    return n;
-  }
+  void _change(VoidCallback fn) => _controller.change(fn);
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +106,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
               AppButton(
                 'Save',
                 kind: ButtonKind.primary,
-                onPressed: _dirty ? () => _save(context) : null,
+                onPressed: _controller.isDirty ? () => _save(context) : null,
               ),
             ],
           ),
@@ -212,7 +189,9 @@ class _RecipeEditViewState extends State<RecipeEditView> {
   }
 
   void _save(BuildContext context) {
-    context.read<AppState>().saveRecipe(_draft);
+    // Desktop saves are still last-write-wins; the stale outcome gets its
+    // review when the phone editor's conflict surface lands.
+    _controller.saveAnyway(context.read<AppState>());
     context.read<NavController>().editRecipe(false);
   }
 
@@ -238,16 +217,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
                   hint: 'Breading',
                 );
                 if (name == null || name.trim().isEmpty) return;
-                _change(() {
-                  _draft.components.add(
-                    RecipeComponent(
-                      id: newId(),
-                      recipeId: _draft.id,
-                      name: name.trim(),
-                      order: _draft.components.length,
-                    ),
-                  );
-                });
+                _controller.addComponent(name.trim());
               },
             ),
           ],
@@ -285,7 +255,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
               fontSize: 10,
               uppercase: true,
               color: t.accentText,
-              onChanged: (v) => _change(() => c.name = v),
+              onChanged: (v) => _controller.renameComponent(c.id, v),
             ),
           ),
           AppIconButton(
@@ -294,11 +264,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
             iconSize: 12,
             bordered: false,
             tooltip: 'Remove component',
-            onPressed: () => _change(() {
-              _draft.components.remove(c);
-              _draft.ingredients.removeWhere((i) => i.componentId == c.id);
-              _draft.steps.removeWhere((s) => s.componentId == c.id);
-            }),
+            onPressed: () => _controller.removeComponent(c.id),
           ),
         ],
       ),
@@ -372,7 +338,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
               size: 22,
               iconSize: 13,
               bordered: false,
-              onPressed: () => _change(() => _draft.ingredients.remove(line)),
+              onPressed: () => _controller.removeIngredient(line.id),
             ),
           ],
         ),
@@ -387,18 +353,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
         border: Border(top: BorderSide(color: t.divider)),
       ),
       child: HoverRow(
-        onTap: () => _change(() {
-          _draft.ingredients.add(
-            Ingredient(
-              id: newId(),
-              componentId: c.id,
-              quantity: null,
-              unit: '',
-              name: '',
-              order: _draft.ingredients.length,
-            ),
-          );
-        }),
+        onTap: () => _controller.addIngredient(c.id),
         child: SizedBox(
           height: 32,
           child: Padding(
@@ -465,16 +420,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
                         kind: ButtonKind.ghost,
                         fontSize: 11,
                         height: 22,
-                        onPressed: () => _change(() {
-                          _draft.steps.add(
-                            RecipeStep(
-                              id: newId(),
-                              componentId: c.id,
-                              text: '',
-                              order: _draft.steps.length,
-                            ),
-                          );
-                        }),
+                        onPressed: () => _controller.addStep(c.id),
                       ),
                     ],
                   ),
@@ -541,7 +487,7 @@ class _RecipeEditViewState extends State<RecipeEditView> {
             size: 22,
             iconSize: 13,
             bordered: false,
-            onPressed: () => _change(() => _draft.steps.remove(step)),
+            onPressed: () => _controller.removeStep(step.id),
           ),
         ],
       ),
@@ -552,7 +498,8 @@ class _RecipeEditViewState extends State<RecipeEditView> {
 
   Widget _footer(BuildContext context, AppState app) {
     final t = context.tokens;
-    final n = _changeCount;
+    final n = _controller.changeCount;
+    final dirty = _controller.isDirty;
     return Container(
       padding: const EdgeInsets.fromLTRB(26, 10, 26, 12),
       decoration: BoxDecoration(
@@ -562,19 +509,19 @@ class _RecipeEditViewState extends State<RecipeEditView> {
       child: Row(
         children: [
           Icon(
-            _dirty ? Icons.edit_outlined : Icons.check,
+            dirty ? Icons.edit_outlined : Icons.check,
             size: 15,
-            color: _dirty ? t.accent : t.textFaint,
+            color: dirty ? t.accent : t.textFaint,
           ),
           const SizedBox(width: 9),
           Text(
-            _dirty
+            dirty
                 ? '$n unsaved ${n == 1 ? 'change' : 'changes'}'
                 : 'No changes',
             style: TextStyle(
               fontFamily: t.bodyFamily,
               fontSize: 12,
-              color: _dirty ? t.text : t.textMuted,
+              color: dirty ? t.text : t.textMuted,
             ),
           ),
           const Spacer(),
@@ -818,8 +765,4 @@ class _MealTypeDropdown extends StatelessWidget {
       ),
     );
   }
-}
-
-extension _FirstOrNull<T> on Iterable<T> {
-  T? get firstOrNull => isEmpty ? null : first;
 }
