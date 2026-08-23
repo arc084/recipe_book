@@ -1,14 +1,60 @@
+import 'dart:io';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../state/app_state.dart';
+import '../../sync/cloud/cloud_folder.dart';
+import '../../sync/cloud/cloud_sync.dart';
 import '../../sync/sync_service.dart';
 import '../../theme/tokens.dart';
 import '../widgets/primitives.dart';
 import 'conflict_review.dart';
 import 'pairing_sheet.dart';
+
+/// Runs one pass through the folder and says what it did.
+///
+/// Shared with the on-focus trigger in `main.dart`, so a sync started either
+/// way reports the same way and a tie raised either way lands on the same
+/// review screen.
+Future<void> runCloudSync(
+  BuildContext context,
+  AppState app, {
+  bool quietWhenIdle = false,
+}) async {
+  final path = app.settings.cloudFolderPath;
+  if (path == null) return;
+
+  final sync = context.read<SyncService>();
+  final outcome = await CloudSync(
+    app,
+    CloudFolder(Directory(path)),
+    reviews: sync,
+  ).run();
+
+  if (!context.mounted) return;
+
+  // A sync that ran on app focus and found nothing should not interrupt;
+  // one the user asked for should always answer.
+  if (quietWhenIdle && outcome.isEmpty && outcome.conflicts == 0) return;
+
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(content: Text(outcome.message)));
+
+  if (outcome.skipped.isNotEmpty) {
+    // Usually another device mid-write, which resolves itself. Worth saying
+    // once rather than never, because a file that never parses looks exactly
+    // the same from here.
+    debugPrint(
+      'Cloud sync skipped ${outcome.skipped.length} unreadable '
+      '${outcome.skipped.length == 1 ? 'post' : 'posts'}: '
+      '${outcome.skipped.map((s) => s.fileName).join(', ')}',
+    );
+  }
+}
 
 /// There is no onboarding — pairing and permissions live here from the first
 /// run.
@@ -74,6 +120,8 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 22),
         _syncSection(context, app),
         const SizedBox(height: 22),
+        _cloudSection(context, app),
+        const SizedBox(height: 22),
         _databasesSection(context, app),
         const SizedBox(height: 22),
         _themeSection(context, app),
@@ -81,6 +129,163 @@ class _SettingsPageState extends State<SettingsPage> {
         _permissionsSection(context, app),
       ],
     );
+  }
+
+  // ── Cloud folder ────────────────────────────────────────────────────────
+
+  /// Whether this platform can open a chosen folder as an ordinary directory.
+  ///
+  /// Android's picker hands back a `content://` URI, which `dart:io` cannot
+  /// open — reaching a Dropbox folder there needs the Storage Access Framework
+  /// and a platform channel. Saying so plainly beats offering a button that
+  /// fails.
+  bool get _canUseCloudFolder =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  Widget _cloudSection(BuildContext context, AppState app) {
+    final t = context.tokens;
+    final path = app.settings.cloudFolderPath;
+
+    return _Section(
+      title: 'Cloud folder',
+      subtitle:
+          'Optional. Point this at a folder Dropbox, OneDrive, Drive or '
+          'Syncthing already keeps in step, and your devices swap changes '
+          'through it. The app never talks to the provider — it only reads '
+          'and writes files.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!_canUseCloudFolder)
+            Panel(
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                'Not on Android yet. Android hands apps a document reference '
+                'rather than a folder path, which needs work this build does '
+                'not have. Use the local network sync above, or set the folder '
+                'up on the desktop.',
+                style: TextStyle(
+                  fontFamily: t.bodyFamily,
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: t.textMuted,
+                ),
+              ),
+            )
+          else if (path == null)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'No folder chosen. Your data stays on this device.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 12.5,
+                      color: t.textMuted,
+                    ),
+                  ),
+                ),
+                AppButton(
+                  'Choose a folder',
+                  kind: ButtonKind.primary,
+                  onPressed: () => _chooseCloudFolder(context, app),
+                ),
+              ],
+            )
+          else ...[
+            Panel(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.folder_outlined, size: 18, color: t.accent),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              path,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: t.bodyFamily,
+                                fontSize: 12.5,
+                                color: t.text,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              app.settings.cloudSyncEnabled
+                                  ? 'Syncing when you open the app'
+                                  : 'Paused',
+                              style: TextStyle(
+                                fontFamily: t.bodyFamily,
+                                fontSize: 11,
+                                color: t.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AppButton(
+                        app.settings.cloudSyncEnabled ? 'Pause' : 'Resume',
+                        fontSize: 12,
+                        onPressed: () => app.setCloudSyncEnabled(
+                          !app.settings.cloudSyncEnabled,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      AppButton(
+                        'Change',
+                        fontSize: 12,
+                        onPressed: () => _chooseCloudFolder(context, app),
+                      ),
+                      const SizedBox(width: 7),
+                      AppButton(
+                        'Stop using',
+                        fontSize: 12,
+                        onPressed: () => app.setCloudFolder(null),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Nothing is deleted from the folder when you stop using '
+                    'it.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 11,
+                      color: t.textFaint,
+                    ),
+                  ),
+                ),
+                AppButton(
+                  'Sync now',
+                  kind: ButtonKind.primary,
+                  onPressed: () => runCloudSync(context, app),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _chooseCloudFolder(BuildContext context, AppState app) async {
+    final chosen = await getDirectoryPath(confirmButtonText: 'Use this folder');
+    if (chosen == null || !context.mounted) return;
+    app.setCloudFolder(chosen);
+    await runCloudSync(context, app);
   }
 
   // ── Sync ────────────────────────────────────────────────────────────────
@@ -115,9 +320,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         child: Text(
                           n == 1
                               ? 'One thing from ${review.source.peerName} is '
-                                  'waiting on you.'
+                                    'waiting on you.'
                               : '$n things from ${review.source.peerName} are '
-                                  'waiting on you.',
+                                    'waiting on you.',
                           style: TextStyle(
                             fontFamily: t.bodyFamily,
                             fontSize: 12.5,

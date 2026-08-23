@@ -846,6 +846,28 @@ class AppState extends ChangeNotifier {
 
   // ── Settings ────────────────────────────────────────────────────────────
 
+  /// Points this device at a folder some other program keeps in step.
+  ///
+  /// Per device and never synced: the same cloud folder is mounted at a
+  /// different path on every machine, so copying this across would point one of
+  /// them at a directory that does not exist. Choosing a folder turns sync on,
+  /// because picking one and then having to find a switch is a step with no
+  /// purpose.
+  void setCloudFolder(String? path) {
+    settings.cloudFolderPath = path;
+    if (path == null) {
+      settings.cloudSyncEnabled = false;
+    } else {
+      settings.cloudSyncEnabled = true;
+    }
+    _touchSettings();
+  }
+
+  void setCloudSyncEnabled(bool enabled) {
+    settings.cloudSyncEnabled = enabled;
+    _touchSettings();
+  }
+
   void setThemeMode(ThemeMode mode) {
     settings.themeMode = mode;
     _touchSettings();

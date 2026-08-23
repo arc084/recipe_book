@@ -11,6 +11,7 @@ import 'sync/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'ui/cook/cook_mode.dart';
 import 'ui/import/import_flow.dart';
+import 'ui/settings/settings_page.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/shell/mobile_shell.dart';
 
@@ -79,6 +80,12 @@ class _RecipeBookAppState extends State<RecipeBookApp>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _share.start();
+
+    // Opening the app is a resume too, but the lifecycle observer never hears
+    // about it: it reports *transitions*, and at launch the app is already
+    // resumed. Without this the first sync would wait until the user alt-tabbed
+    // away and back, so a cold start always showed stale data.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncCloudFolder());
   }
 
   @override
@@ -89,10 +96,26 @@ class _RecipeBookAppState extends State<RecipeBookApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+
     // A link held back while cooking gets another chance on the way back in.
-    if (state == AppLifecycleState.resumed && _share.hasHeldLink) {
-      _share.flush();
-    }
+    if (_share.hasHeldLink) _share.flush();
+
+    // Coming back to the app is the moment its data should be current: you
+    // open the phone in the kitchen and the list is what the laptop last saw.
+    // Only on focus, never on a timer and never in the background — reading a
+    // folder is cheap, but a process that syncs while nobody is looking is not
+    // what "local by default" means.
+    _syncCloudFolder();
+  }
+
+  void _syncCloudFolder() {
+    if (!widget.state.settings.hasCloudFolder) return;
+    final context = _navigatorKey.currentContext;
+    if (context == null) return;
+    // Quiet when there is nothing to report: a snackbar on every app focus
+    // saying "already up to date" would be noise.
+    runCloudSync(context, widget.state, quietWhenIdle: true);
   }
 
   /// Routes a shared address into step 1 of the import.
