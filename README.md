@@ -1,8 +1,7 @@
 # Recipe Book
 
 An open-source **kitchen manager** for Windows desktop and Android: a group of
-cooking tools that work together rather than five separate apps that happen to
-sit on the same device.
+cooking tools that work together.
 
 - **Recipe book** — recipes grouped into components (Cutlets, Breading, Fry &
   finish), with continuous step numbering across them
@@ -82,9 +81,7 @@ network. Conflicts resolve by newest-wins, and the one case timestamps cannot
 settle — two copies changed at the same instant — is put to you on a review
 screen.
 
-## Known gaps
-
-Honest about what is not built yet:
+## Planned features and known bugs
 
 - **Cook mode voice commands and keep-screen-awake.** The UI lists both; neither
   works.
