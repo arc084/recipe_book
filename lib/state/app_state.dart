@@ -868,6 +868,11 @@ class AppState extends ChangeNotifier {
     _touchSettings();
   }
 
+  void setAutofillFromLabels(bool on) {
+    settings.autofillFromLabels = on;
+    _touchSettings();
+  }
+
   void setThemeMode(ThemeMode mode) {
     settings.themeMode = mode;
     _touchSettings();
