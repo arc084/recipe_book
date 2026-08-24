@@ -11,7 +11,7 @@ import 'sync/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'ui/cook/cook_mode.dart';
 import 'ui/import/import_flow.dart';
-import 'ui/settings/settings_page.dart';
+import 'ui/settings/cloud_folder_section.dart';
 import 'ui/shell/app_shell.dart';
 import 'ui/shell/mobile_shell.dart';
 
