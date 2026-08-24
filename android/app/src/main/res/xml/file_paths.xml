@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the cache directory is shareable: update downloads land there, and
+     nothing else in the app hands files across process boundaries. -->
+<paths>
+    <cache-path name="updates" path="."/>
+</paths>

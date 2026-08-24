@@ -43,3 +43,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // FileProvider, for handing a downloaded APK to the system installer.
+    implementation("androidx.core:core-ktx:1.13.1")
+}

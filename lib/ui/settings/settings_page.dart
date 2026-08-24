@@ -3,13 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../app_version.dart';
 import '../../state/app_state.dart';
 import '../../sync/sync_service.dart';
 import '../../theme/tokens.dart';
+import '../../update/handoff.dart';
+import '../../update/release_check.dart';
+import '../../update/updater.dart';
 import '../widgets/primitives.dart';
 import 'cloud_folder_section.dart';
 import 'conflict_review.dart';
 import 'pairing_sheet.dart';
+import 'update_row.dart';
 
 /// There is no onboarding — pairing and permissions live here from the first
 /// run.
@@ -29,6 +34,9 @@ class _SettingsPageState extends State<SettingsPage> {
   int _librarySize = 0;
   int _pantrySize = 0;
 
+  /// One client for the page's lifetime, closed with it.
+  late final Updater _updater = Updater();
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +52,12 @@ class _SettingsPageState extends State<SettingsPage> {
       _librarySize = l;
       _pantrySize = p;
     });
+  }
+
+  @override
+  void dispose() {
+    _updater.close();
+    super.dispose();
   }
 
   @override
@@ -79,11 +93,212 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 22),
         _databasesSection(context, app),
         const SizedBox(height: 22),
+        _labelSearchSection(context, app),
+        const SizedBox(height: 22),
         _themeSection(context, app),
         const SizedBox(height: 22),
         _permissionsSection(context, app),
+        // The two platforms releases are actually built for; a dev run on
+        // anything else has nothing honest to offer.
+        if (Platform.isWindows || Platform.isAndroid) ...[
+          const SizedBox(height: 22),
+          _updatesSection(context),
+        ],
       ],
     );
+  }
+
+  // ── Label search ────────────────────────────────────────────────────────
+ 
+  Widget _labelSearchSection(BuildContext context, AppState app) {
+    final t = context.tokens;
+    final on = app.settings.autofillFromLabels;
+    return _Section(
+      title: 'Label search',
+      subtitle:
+          'The macros editor can search Open Food Facts for a product\'s '
+          'label. It only ever fetches when you tap search.',
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              on
+                  ? 'Picking a result fills the form. The reference card '
+                        'always shows.'
+                  : 'Picking a result only shows the reference card.',
+              style: TextStyle(
+                fontFamily: t.bodyFamily,
+                fontSize: 12.5,
+                color: t.text,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppButton(
+            on ? 'Turn autofill off' : 'Turn autofill on',
+            fontSize: 12,
+            onPressed: () => app.setAutofillFromLabels(!on),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Cloud folder ────────────────────────────────────────────────────────
+
+  /// Whether this platform can open a chosen folder as an ordinary directory.
+  ///
+  /// Android's picker hands back a `content://` URI, which `dart:io` cannot
+  /// open — reaching a Dropbox folder there needs the Storage Access Framework
+  /// and a platform channel. Saying so plainly beats offering a button that
+  /// fails.
+  bool get _canUseCloudFolder =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  Widget _cloudSection(BuildContext context, AppState app) {
+    final t = context.tokens;
+    final path = app.settings.cloudFolderPath;
+
+    return _Section(
+      title: 'Cloud folder',
+      subtitle:
+          'Optional. Point this at a folder Dropbox, OneDrive, Drive or '
+          'Syncthing already keeps in step, and your devices swap changes '
+          'through it. The app never talks to the provider — it only reads '
+          'and writes files.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!_canUseCloudFolder)
+            Panel(
+              padding: const EdgeInsets.all(14),
+              child: Text(
+                'Not on Android yet. Android hands apps a document reference '
+                'rather than a folder path, which needs work this build does '
+                'not have. Use the local network sync above, or set the folder '
+                'up on the desktop.',
+                style: TextStyle(
+                  fontFamily: t.bodyFamily,
+                  fontSize: 12.5,
+                  height: 1.5,
+                  color: t.textMuted,
+                ),
+              ),
+            )
+          else if (path == null)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'No folder chosen. Your data stays on this device.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 12.5,
+                      color: t.textMuted,
+                    ),
+                  ),
+                ),
+                AppButton(
+                  'Choose a folder',
+                  kind: ButtonKind.primary,
+                  onPressed: () => _chooseCloudFolder(context, app),
+                ),
+              ],
+            )
+          else ...[
+            Panel(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.folder_outlined, size: 18, color: t.accent),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              path,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: t.bodyFamily,
+                                fontSize: 12.5,
+                                color: t.text,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              app.settings.cloudSyncEnabled
+                                  ? 'Syncing when you open the app'
+                                  : 'Paused',
+                              style: TextStyle(
+                                fontFamily: t.bodyFamily,
+                                fontSize: 11,
+                                color: t.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AppButton(
+                        app.settings.cloudSyncEnabled ? 'Pause' : 'Resume',
+                        fontSize: 12,
+                        onPressed: () => app.setCloudSyncEnabled(
+                          !app.settings.cloudSyncEnabled,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      AppButton(
+                        'Change',
+                        fontSize: 12,
+                        onPressed: () => _chooseCloudFolder(context, app),
+                      ),
+                      const SizedBox(width: 7),
+                      AppButton(
+                        'Stop using',
+                        fontSize: 12,
+                        onPressed: () => app.setCloudFolder(null),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Nothing is deleted from the folder when you stop using '
+                    'it.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 11,
+                      color: t.textFaint,
+                    ),
+                  ),
+                ),
+                AppButton(
+                  'Sync now',
+                  kind: ButtonKind.primary,
+                  onPressed: () => runCloudSync(context, app),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _chooseCloudFolder(BuildContext context, AppState app) async {
+    final chosen = await getDirectoryPath(confirmButtonText: 'Use this folder');
+    if (chosen == null || !context.mounted) return;
+    app.setCloudFolder(chosen);
+    await runCloudSync(context, app);
   }
 
   // ── Sync ────────────────────────────────────────────────────────────────
