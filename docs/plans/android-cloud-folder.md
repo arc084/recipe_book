@@ -1,6 +1,11 @@
 # Plan: the cloud folder on Android
 
-**Status:** designed, not started.
+**Status:** built. The relay derivation, the extracted cloud section and the
+Android setup flow are in with tests; still to be run by hand on a phone —
+set up the relay, point Syncthing (and separately a OneDrive mirror app) at
+it, and confirm posts flow both ways. If setup reports it could not find the
+shared media folder, the `getExternalMediaDirs` contingency below becomes the
+next task.
 
 ## Context
 

@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../state/app_state.dart';
+import '../../sync/cloud/android_relay.dart';
 import '../../sync/cloud/cloud_folder.dart';
 import '../../sync/cloud/cloud_sync.dart';
 import '../../sync/sync_service.dart';
@@ -74,6 +77,46 @@ class CloudFolderSection extends StatelessWidget {
       defaultTargetPlatform == TargetPlatform.linux ||
       defaultTargetPlatform == TargetPlatform.macOS;
 
+  bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
+
+  /// The production [relayRoot]: app-files directory in, media directory out.
+  static Future<String?> _defaultRelayRoot() async {
+    final files = await getExternalStorageDirectory();
+    return files == null ? null : androidMediaRelay(files.path);
+  }
+
+  /// One tap: derive the relay, create the mover-facing subfolder, point
+  /// sync at it. Deliberately does not run a first sync — the mover is not
+  /// configured yet at this moment, and the card's own Sync now covers it.
+  Future<void> _setUpRelay(BuildContext context, AppState app) async {
+    final root = await (relayRoot ?? _defaultRelayRoot)();
+    if (!context.mounted) return;
+    if (root == null) {
+      // A vendor layout we do not recognise. Saying so beats a silent no-op —
+      // the spec's contingency (getExternalMediaDirs over a channel) starts
+      // from this message being reported.
+      final t = context.tokens;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Could not find the shared media folder on this phone.',
+              style: TextStyle(fontFamily: t.bodyFamily, fontSize: 12.5),
+            ),
+            backgroundColor: t.surface,
+            behavior: SnackBarBehavior.floating,
+            width: 380,
+          ),
+        );
+      return;
+    }
+    // Synchronous on purpose: nothing to park in a test's fake zone, nothing
+    // to die with the process.
+    Directory('$root/recipe-book').createSync(recursive: true);
+    app.setCloudFolder(root); // also turns cloudSyncEnabled on
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
@@ -90,14 +133,11 @@ class CloudFolderSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!_canUseCloudFolder)
+          if (!_canUseCloudFolder && !_isAndroid)
             Panel(
               padding: const EdgeInsets.all(14),
               child: Text(
-                'Not on Android yet. Android hands apps a document reference '
-                'rather than a folder path, which needs work this build does '
-                'not have. Use the local network sync above, or set the folder '
-                'up on the desktop.',
+                'Not available on this platform yet.',
                 style: TextStyle(
                   fontFamily: t.bodyFamily,
                   fontSize: 12.5,
@@ -105,6 +145,31 @@ class CloudFolderSection extends StatelessWidget {
                   color: t.textMuted,
                 ),
               ),
+            )
+          else if (path == null && _isAndroid)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'The app keeps a relay folder that Syncthing, or a sync '
+                    'app mirroring OneDrive or Dropbox, can move for it. '
+                    'Uninstalling the app deletes the relay; it is only a '
+                    'copy.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 12.5,
+                      height: 1.5,
+                      color: t.textMuted,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                AppButton(
+                  'Set up the relay folder',
+                  kind: ButtonKind.primary,
+                  onPressed: () => _setUpRelay(context, app),
+                ),
+              ],
             )
           else if (path == null)
             Row(
@@ -141,7 +206,9 @@ class CloudFolderSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              path,
+                              // Android shows the subfolder the mover syncs;
+                              // that is the string worth copying.
+                              _isAndroid ? '$path/recipe-book' : path,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -173,9 +240,16 @@ class CloudFolderSection extends StatelessWidget {
                       ),
                       const SizedBox(width: 7),
                       AppButton(
-                        'Change',
+                        // No picker on Android — the path is fixed, and what
+                        // the user actually needs is to paste it into their
+                        // sync app.
+                        _isAndroid ? 'Copy path' : 'Change',
                         fontSize: 12,
-                        onPressed: () => _chooseCloudFolder(context, app),
+                        onPressed: _isAndroid
+                            ? () => Clipboard.setData(
+                                ClipboardData(text: '$path/recipe-book'),
+                              )
+                            : () => _chooseCloudFolder(context, app),
                       ),
                       const SizedBox(width: 7),
                       AppButton(
