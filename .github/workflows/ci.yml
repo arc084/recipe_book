@@ -1,0 +1,41 @@
+# Runs the same two commands every branch already passes locally — on every
+# pull request and on everything that lands on main. The point is the code
+# change nobody's machine ever sees: a conflict resolved in the web editor
+# becomes a commit like any other, and this is the only compiler that will
+# ever look at it. (Merge #1–#3 shipped a main that did not compile; this
+# file exists so that cannot happen quietly again.)
+#
+# What it cannot check stays manual: anything needing a real phone or the
+# live network — process death, APK installs, an actual Open Food Facts
+# search.
+name: checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Pinned to the version the app is developed against, so the robot
+          # and the desks disagree about nothing. Bump deliberately, with a
+          # local upgrade — never let CI drift ahead on its own.
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      # Zero issues is this repo's normal state, so anything — including an
+      # info — turns the check red. A merge that leaves dead code behind
+      # shows up here as an unused-declaration warning.
+      - run: flutter analyze --fatal-infos
+
+      - run: flutter test
