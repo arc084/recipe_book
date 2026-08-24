@@ -18,8 +18,22 @@ void main() {
   late AppState a;
   late AppState b;
 
-  final monday = DateTime(2026, 8, 24);
-  final tuesday = DateTime(2026, 8, 25);
+  // A Monday a year out. Fixed dates here were a time bomb: the seed plants
+  // "this week's plan" around DateTime.now(), so the day the calendar reached
+  // the hardcoded week, tuesday-dinner was suddenly occupied by seed data and
+  // the move-into-empty-slot test was silently testing a swap. (CI's UTC
+  // clock got there a day before local time did.)
+  DateTime nextYearMonday() {
+    final now = DateTime.now();
+    return DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(Duration(days: 8 - now.weekday + 364));
+  }
+
+  final monday = nextYearMonday();
+  final tuesday = nextYearMonday().add(const Duration(days: 1));
 
   Future<void> pair() async {
     final libPath = '${dirA.path}${Platform.pathSeparator}lib-export.json';
