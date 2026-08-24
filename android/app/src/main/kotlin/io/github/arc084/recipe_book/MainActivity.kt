@@ -1,9 +1,11 @@
 package io.github.arc084.recipe_book
 
 import android.content.Intent
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.io.File
 
 /**
  * Receives a page shared to Recipe Book and hands the address to Dart.
@@ -44,6 +46,51 @@ class MainActivity : FlutterActivity() {
 
         // The launch intent is available before Dart asks for it.
         pendingSharedText = extractSharedText(intent)
+
+        // The update flow's one native need: handing a downloaded APK to the
+        // system installer. Same no-plugin reasoning as the share channel.
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            INSTALL_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "installApk" -> {
+                    val path = call.argument<String>("path")
+                    if (path == null) {
+                        result.error("badArgs", "installApk needs a path", null)
+                    } else {
+                        try {
+                            installApk(path)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("installFailed", e.message, null)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /**
+     * Opens the system installer on the APK at [path].
+     *
+     * The file travels as a content URI from the manifest's FileProvider —
+     * a raw file:// path has not been accepted since Android 7. The system
+     * shows its own confirmation, which is correct and not worked around.
+     */
+    private fun installApk(path: String) {
+        val uri = FileProvider.getUriForFile(
+            this,
+            "$packageName.fileprovider",
+            File(path),
+        )
+        startActivity(
+            Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            },
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -69,5 +116,6 @@ class MainActivity : FlutterActivity() {
 
     private companion object {
         const val CHANNEL = "recipe_book/share"
+        const val INSTALL_CHANNEL = "recipe_book/install"
     }
 }

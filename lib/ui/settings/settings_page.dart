@@ -5,14 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../app_version.dart';
 import '../../state/app_state.dart';
 import '../../sync/cloud/cloud_folder.dart';
 import '../../sync/cloud/cloud_sync.dart';
 import '../../sync/sync_service.dart';
 import '../../theme/tokens.dart';
+import '../../update/handoff.dart';
+import '../../update/release_check.dart';
+import '../../update/updater.dart';
 import '../widgets/primitives.dart';
 import 'conflict_review.dart';
 import 'pairing_sheet.dart';
+import 'update_row.dart';
 
 /// Runs one pass through the folder and says what it did.
 ///
@@ -74,6 +79,9 @@ class _SettingsPageState extends State<SettingsPage> {
   int _librarySize = 0;
   int _pantrySize = 0;
 
+  /// One client for the page's lifetime, closed with it.
+  late final Updater _updater = Updater();
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +97,12 @@ class _SettingsPageState extends State<SettingsPage> {
       _librarySize = l;
       _pantrySize = p;
     });
+  }
+
+  @override
+  void dispose() {
+    _updater.close();
+    super.dispose();
   }
 
   @override
@@ -129,6 +143,12 @@ class _SettingsPageState extends State<SettingsPage> {
         _themeSection(context, app),
         const SizedBox(height: 22),
         _permissionsSection(context, app),
+        // The two platforms releases are actually built for; a dev run on
+        // anything else has nothing honest to offer.
+        if (Platform.isWindows || Platform.isAndroid) ...[
+          const SizedBox(height: 22),
+          _updatesSection(context),
+        ],
       ],
     );
   }
