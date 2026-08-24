@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -7,59 +5,16 @@ import 'package:provider/provider.dart';
 
 import '../../app_version.dart';
 import '../../state/app_state.dart';
-import '../../sync/cloud/cloud_folder.dart';
-import '../../sync/cloud/cloud_sync.dart';
 import '../../sync/sync_service.dart';
 import '../../theme/tokens.dart';
 import '../../update/handoff.dart';
 import '../../update/release_check.dart';
 import '../../update/updater.dart';
 import '../widgets/primitives.dart';
+import 'cloud_folder_section.dart';
 import 'conflict_review.dart';
 import 'pairing_sheet.dart';
 import 'update_row.dart';
-
-/// Runs one pass through the folder and says what it did.
-///
-/// Shared with the on-focus trigger in `main.dart`, so a sync started either
-/// way reports the same way and a tie raised either way lands on the same
-/// review screen.
-Future<void> runCloudSync(
-  BuildContext context,
-  AppState app, {
-  bool quietWhenIdle = false,
-}) async {
-  final path = app.settings.cloudFolderPath;
-  if (path == null) return;
-
-  final sync = context.read<SyncService>();
-  final outcome = await CloudSync(
-    app,
-    CloudFolder(Directory(path)),
-    reviews: sync,
-  ).run();
-
-  if (!context.mounted) return;
-
-  // A sync that ran on app focus and found nothing should not interrupt;
-  // one the user asked for should always answer.
-  if (quietWhenIdle && outcome.isEmpty && outcome.conflicts == 0) return;
-
-  ScaffoldMessenger.of(context)
-    ..clearSnackBars()
-    ..showSnackBar(SnackBar(content: Text(outcome.message)));
-
-  if (outcome.skipped.isNotEmpty) {
-    // Usually another device mid-write, which resolves itself. Worth saying
-    // once rather than never, because a file that never parses looks exactly
-    // the same from here.
-    debugPrint(
-      'Cloud sync skipped ${outcome.skipped.length} unreadable '
-      '${outcome.skipped.length == 1 ? 'post' : 'posts'}: '
-      '${outcome.skipped.map((s) => s.fileName).join(', ')}',
-    );
-  }
-}
 
 /// There is no onboarding — pairing and permissions live here from the first
 /// run.
@@ -134,7 +89,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 22),
         _syncSection(context, app),
         const SizedBox(height: 22),
-        _cloudSection(context, app),
+        const CloudFolderSection(),
         const SizedBox(height: 22),
         _databasesSection(context, app),
         const SizedBox(height: 22),
@@ -154,7 +109,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // ── Label search ────────────────────────────────────────────────────────
-
+ 
   Widget _labelSearchSection(BuildContext context, AppState app) {
     final t = context.tokens;
     final on = app.settings.autofillFromLabels;
