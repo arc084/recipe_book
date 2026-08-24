@@ -1,6 +1,8 @@
 # Plan: label search in the macros editor
 
-**Status:** designed, not started.
+**Status:** built. Parser, client, setting, dialog and Settings row are all in
+with tests; the one check fixtures cannot vouch for — a real search against
+Open Food Facts, on a device — is still to be run by hand.
 
 ## Context
 

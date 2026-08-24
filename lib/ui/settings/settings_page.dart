@@ -124,10 +124,48 @@ class _SettingsPageState extends State<SettingsPage> {
         const SizedBox(height: 22),
         _databasesSection(context, app),
         const SizedBox(height: 22),
+        _labelSearchSection(context, app),
+        const SizedBox(height: 22),
         _themeSection(context, app),
         const SizedBox(height: 22),
         _permissionsSection(context, app),
       ],
+    );
+  }
+
+  // ── Label search ────────────────────────────────────────────────────────
+
+  Widget _labelSearchSection(BuildContext context, AppState app) {
+    final t = context.tokens;
+    final on = app.settings.autofillFromLabels;
+    return _Section(
+      title: 'Label search',
+      subtitle:
+          'The macros editor can search Open Food Facts for a product\'s '
+          'label. It only ever fetches when you tap search.',
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              on
+                  ? 'Picking a result fills the form. The reference card '
+                        'always shows.'
+                  : 'Picking a result only shows the reference card.',
+              style: TextStyle(
+                fontFamily: t.bodyFamily,
+                fontSize: 12.5,
+                color: t.text,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AppButton(
+            on ? 'Turn autofill off' : 'Turn autofill on',
+            fontSize: 12,
+            onPressed: () => app.setAutofillFromLabels(!on),
+          ),
+        ],
+      ),
     );
   }
 
