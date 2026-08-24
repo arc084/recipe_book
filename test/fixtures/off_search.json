@@ -1,0 +1,39 @@
+{
+  "count": 4,
+  "products": [
+    {
+      "product_name": "Chocolate Digestive",
+      "brands": "McVitie's,United Biscuits",
+      "serving_size": "2 biscuits (33 g)",
+      "product_quantity": "500",
+      "product_quantity_unit": "g",
+      "nutriments": {
+        "energy-kcal_100g": 495,
+        "energy_100g": 2071,
+        "proteins_100g": 6.7,
+        "fat_100g": 23.9,
+        "carbohydrates_100g": 62.5,
+        "sugars_100g": 29.4
+      }
+    },
+    {
+      "product_name": "Plain Yoghurt",
+      "brands": "",
+      "serving_size": "1 pot",
+      "quantity": "4 x 125 g",
+      "nutriments": {
+        "energy_100g": 264,
+        "proteins_100g": 4.4,
+        "fat_100g": 3.5,
+        "carbohydrates_100g": 5.0
+      }
+    },
+    {
+      "product_name": "",
+      "nutriments": { "energy-kcal_100g": 100 }
+    },
+    {
+      "product_name": "Mystery Spice"
+    }
+  ]
+}
