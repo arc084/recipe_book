@@ -62,8 +62,12 @@ class _UpdateRowState extends State<UpdateRow> {
   /// abandoned check cannot overwrite the state that replaced it.
   int _generation = 0;
 
+  /// Both Windows flavours say "Windows" here. Which artefact this copy takes
+  /// decides what gets downloaded, but it is not what the sentence is about —
+  /// "no Windows build in that release" is the useful thing to read, and
+  /// "no Windows installer build" would only invite a hunt for the other one.
   String get _platformName => switch (widget.platform) {
-    UpdatePlatform.windows => 'Windows',
+    UpdatePlatform.windows || UpdatePlatform.windowsSetup => 'Windows',
     UpdatePlatform.android => 'Android',
   };
 

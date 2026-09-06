@@ -6,8 +6,16 @@
 library;
 
 /// Which build is asking, and therefore which artefact name matters.
+///
+/// Windows appears twice because the two builds are updated by different
+/// means: an unpacked copy takes the zip, an installed one takes the setup
+/// exe. See `install_flavour.dart` for why they must not be crossed. The
+/// suffixes cannot collide — a name ending in `-windows-x64-setup.exe` does
+/// not end in `-windows-x64.zip` — so the matching below stays a plain
+/// endsWith.
 enum UpdatePlatform {
   windows('-windows-x64.zip'),
+  windowsSetup('-windows-x64-setup.exe'),
   android('-android.apk');
 
   const UpdatePlatform(this.assetSuffix);

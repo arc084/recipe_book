@@ -11,8 +11,36 @@ import 'updater.dart';
 /// way it shows a download that broke off — in plain words, in place.
 Future<String> handOffUpdate(File file, AvailableUpdate update) {
   if (Platform.isAndroid) return _installApk(file);
-  if (Platform.isWindows) return _unpackBeside(file, update);
+  if (Platform.isWindows) {
+    // Routed on the artefact rather than on the flavour that asked for it.
+    // The file in hand is what decides which method applies, and this way a
+    // release that somehow served the wrong one is still handled correctly
+    // rather than being unpacked because of what we expected to receive.
+    return file.path.toLowerCase().endsWith('.exe')
+        ? _runSetup(file)
+        : _unpackBeside(file, update);
+  }
   throw DownloadFailure('No update hand-off exists for this platform.');
+}
+
+/// Starts the downloaded installer and gets out of its way.
+///
+/// The Inno script sets `CloseApplications`, so the restart manager closes
+/// this copy at the moment it needs the files — which is better than the app
+/// trying to exit from underneath the code that just launched the installer.
+Future<String> _runSetup(File setup) async {
+  try {
+    await Process.start(
+      setup.path,
+      const [],
+      mode: ProcessStartMode.detached,
+    );
+  } on ProcessException catch (e) {
+    throw DownloadFailure(
+      'The installer could not be started: ${e.message}',
+    );
+  }
+  return 'The installer is open — follow it and it will replace this copy.';
 }
 
 /// Hands the APK to the system installer through the app's own method

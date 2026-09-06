@@ -10,7 +10,7 @@ import '../../state/app_state.dart';
 import '../../sync/sync_service.dart';
 import '../../theme/tokens.dart';
 import '../../update/handoff.dart';
-import '../../update/release_check.dart';
+import '../../update/install_flavour.dart';
 import '../../update/updater.dart';
 import '../widgets/primitives.dart';
 import 'cloud_folder_section.dart';
@@ -159,9 +159,12 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: UpdateRow(
             updater: _updater,
-            platform: Platform.isAndroid
-                ? UpdatePlatform.android
-                : UpdatePlatform.windows,
+            // An installed copy and an unpacked one are updated by different
+            // artefacts, so which this build is decides what it asks for.
+            platform: updateTargetFor(
+              isAndroid: Platform.isAndroid,
+              flavour: flavourIn(File(Platform.resolvedExecutable).parent),
+            ),
             runningVersion: kAppVersion,
             onDownloaded: handOffUpdate,
           ),

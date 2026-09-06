@@ -1,0 +1,101 @@
+# Builds and publishes the Windows artefacts when a version tag is pushed.
+#
+# Two artefacts, on purpose. An unpacked copy is updated by the zip and an
+# installed one by the setup exe, and they must not be crossed — handing a zip
+# to an installed copy leaves a second, unregistered folder while the Start
+# menu still points at the old version. The app tells which it is by the
+# marker the installer writes; see lib/update/install_flavour.dart.
+#
+# The Android APK is NOT built here, and that is deliberate. Release APKs are
+# still signed with the debug key (a TODO in android/app/build.gradle.kts),
+# and a fresh runner generates its own random ~/.android/debug.keystore — so a
+# CI-built APK would carry a different signature from the one on the phone and
+# Android would refuse to upgrade. Until there is a real signing key, build it
+# on the machine that signed the copies already out there:
+#
+#   flutter build apk --release
+#   mv build/app/outputs/flutter-apk/app-release.apk \
+#      recipe-book-<version>-android.apk
+#   gh release upload v<version> recipe-book-<version>-android.apk
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # The same pin as ci.yml. Bump both together, and only after a
+          # local upgrade — a release built by a Flutter the desks have never
+          # run is not a release anyone has tested.
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+
+      # A mistyped tag would otherwise publish a build labelled with one
+      # version and reporting another from inside. test/version_test.dart
+      # keeps app_version.dart and pubspec.yaml honest with each other; this
+      # is the same guard extended to the tag.
+      - name: The tag and pubspec must agree
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}' -replace '^v', ''
+          $line = Select-String -Path pubspec.yaml -Pattern '^version:\s*(\S+)'
+          $semver = $line.Matches[0].Groups[1].Value.Split('+')[0]
+          Write-Host "tag: $tag   pubspec: $semver"
+          if ($tag -ne $semver) {
+            throw "Tag '$tag' does not match pubspec version '$semver'."
+          }
+          "APP_VERSION=$semver" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - run: flutter pub get
+
+      - run: flutter build windows --release
+
+      # Flat, matching the layout every published zip has had: the exe, its
+      # DLLs and data/ sit at the root, so unpacking gives a runnable folder
+      # rather than a folder inside a folder.
+      - name: Zip the bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build\artefacts | Out-Null
+          Compress-Archive `
+            -Path build\windows\x64\runner\Release\* `
+            -DestinationPath "build\artefacts\recipe-book-$env:APP_VERSION-windows-x64.zip"
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC not found at $iscc" }
+          & $iscc "/DAppVersion=$env:APP_VERSION" windows\installer\recipe_book.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)." }
+
+      # gh ships on the runner and authenticates from GITHUB_TOKEN, so no
+      # third-party action is needed for this. --clobber makes a re-run of a
+      # failed publish replace what it uploaded rather than erroring.
+      - name: Publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title "Recipe Book $env:APP_VERSION" --generate-notes
+          }
+          gh release upload $tag `
+            "build\artefacts\recipe-book-$env:APP_VERSION-windows-x64.zip" `
+            "build\installer\recipe-book-$env:APP_VERSION-windows-x64-setup.exe" `
+            --clobber

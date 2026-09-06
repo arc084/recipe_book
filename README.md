@@ -26,10 +26,34 @@ accounts, and there is no service to sign up to.
 
 ## Status
 
-**0.7.0 — pre-1.0 and under active development.** 1.0.0 is reserved for the
+**0.7.2 — pre-1.0 and under active development.** 1.0.0 is reserved for the
 release where every planned feature is built and debugged, so the version number
 itself tells you the app is still being built. Expect rough edges; see
-[Known gaps](#known-gaps).
+[Planned features and known bugs](#planned-features-and-known-bugs).
+
+## Installing
+
+Every release publishes both Windows artefacts on the
+[releases page](https://github.com/arc084/recipe_book/releases):
+
+| Artefact | What it does |
+| --- | --- |
+| `…-windows-x64-setup.exe` | Installs to `%LOCALAPPDATA%\Programs\Recipe Book` with a Start-menu entry and an uninstall record. No administrator prompt. |
+| `…-windows-x64.zip` | The portable folder — unpack it anywhere and run `recipe_book.exe`. |
+
+Take either. The app notices which kind of copy it is and asks for the matching
+artefact when it updates, so an installed copy gets replaced in place and an
+unpacked one gets a new folder beside it. What you should *not* do is unpack a
+zip over an installed copy: you would end up with two, and the Start menu would
+still point at the old one.
+
+Either way the binaries are unsigned, so Windows SmartScreen warns the first
+time. Your recipes live in `%APPDATA%`, not the install folder, so switching
+between the two — or uninstalling — leaves them alone.
+
+**Android** installs from `…-android.apk`, which is currently signed with a
+**debug key**. That is fine for a build handed to you directly and not fine for
+a stranger downloading it, so treat it as household software until that changes.
 
 ## Building
 
@@ -56,7 +80,7 @@ development with C++" workload. Android builds need the Android SDK
 (compileSdk 36) and a JDK 17 or 21.
 
 ```bash
-flutter test        # 178 tests, no device required
+flutter test        # 288 tests, no device required
 flutter analyze
 ```
 
@@ -95,8 +119,10 @@ screen.
   existing folder publishes its own seeded library, whose ids differ, and every
   device ends up with a duplicate of everything. Export from an existing device
   and import on the new one first.
-- **Cloud folders do not work on Android yet.** Android hands apps a document
-  reference rather than a path, which needs the Storage Access Framework.
+- **Android reaches a cloud folder only through a relay.** Scoped storage means
+  the app cannot open your provider's folder directly, so it keeps a relay
+  folder that Syncthing — or any sync app — can carry to the desktop. You point
+  that mover at it yourself, and uninstalling the app deletes the relay.
 - Android release builds are signed with debug keys.
 
 ## Licence
