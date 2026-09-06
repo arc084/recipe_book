@@ -24,6 +24,11 @@ enum CookCommand {
   final String spoken;
 }
 
+/// How a command reached cook mode. Only voice can mishear, so only voice
+/// claims to have heard anything; the keyboard echoes the key it saw, and a
+/// button press is its own feedback and says nothing.
+enum CookTrigger { voice, keyboard, pointer }
+
 abstract final class CookMode {
   /// True while a cook session is on screen.
   ///
@@ -228,8 +233,10 @@ class _CookModeScreenState extends State<CookModeScreen> {
   Timer? _ticker;
 
   /// Every heard command shows a confirmation card naming what it heard and
-  /// what it did, so a misheard word is obvious immediately.
-  ({String heard, String did})? _lastCommand;
+  /// what it did, so a misheard word is obvious immediately. The keyboard
+  /// echoes its key the same way without claiming to have heard it, and a
+  /// pointer press shows nothing — the card stays a signal about listening.
+  ({CookTrigger trigger, String label, String did})? _lastCommand;
   Timer? _commandFade;
 
   @override
@@ -249,7 +256,11 @@ class _CookModeScreenState extends State<CookModeScreen> {
     super.dispose();
   }
 
-  void _run(CookCommand command, {String? heard}) {
+  void _run(
+    CookCommand command, {
+    required CookTrigger trigger,
+    String? label,
+  }) {
     final recipe = context.read<AppState>().recipe(widget.recipeId);
     if (recipe == null) return;
     final steps = recipe.orderedSteps;
@@ -280,12 +291,14 @@ class _CookModeScreenState extends State<CookModeScreen> {
         return;
     }
 
-    _showCommand(heard ?? command.spoken, did);
+    _showCommand(trigger, label ?? command.spoken, did);
   }
 
-  void _showCommand(String heard, String did) {
+  void _showCommand(CookTrigger trigger, String label, String did) {
+    // A button press already showed the user what it did.
+    if (trigger == CookTrigger.pointer) return;
     _commandFade?.cancel();
-    setState(() => _lastCommand = (heard: heard, did: did));
+    setState(() => _lastCommand = (trigger: trigger, label: label, did: did));
     _commandFade = Timer(
       const Duration(seconds: 4),
       () => mounted ? setState(() => _lastCommand = null) : null,
@@ -379,13 +392,21 @@ class _CookModeScreenState extends State<CookModeScreen> {
         switch (event.logicalKey) {
           case LogicalKeyboardKey.space:
           case LogicalKeyboardKey.arrowRight:
-            _run(CookCommand.next, heard: 'space / →');
+            _run(
+              CookCommand.next,
+              trigger: CookTrigger.keyboard,
+              label: 'space / →',
+            );
             return KeyEventResult.handled;
           case LogicalKeyboardKey.arrowLeft:
-            _run(CookCommand.back, heard: '←');
+            _run(CookCommand.back, trigger: CookTrigger.keyboard, label: '←');
             return KeyEventResult.handled;
           case LogicalKeyboardKey.keyT:
-            _run(CookCommand.startTimer, heard: 'T');
+            _run(
+              CookCommand.startTimer,
+              trigger: CookTrigger.keyboard,
+              label: 'T',
+            );
             return KeyEventResult.handled;
           case LogicalKeyboardKey.escape:
             _leave();
@@ -601,6 +622,8 @@ class _CookModeScreenState extends State<CookModeScreen> {
 
   Widget _commandCard(BuildContext context) {
     final t = context.tokens;
+    final command = _lastCommand!;
+    final byVoice = command.trigger == CookTrigger.voice;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -611,10 +634,16 @@ class _CookModeScreenState extends State<CookModeScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.graphic_eq, size: 15, color: t.accent),
+          Icon(
+            byVoice ? Icons.graphic_eq : Icons.keyboard_outlined,
+            size: 15,
+            color: t.accent,
+          ),
           const SizedBox(width: 9),
           Text(
-            'Heard “${_lastCommand!.heard}” — ${_lastCommand!.did}',
+            byVoice
+                ? 'Heard “${command.label}” — ${command.did}'
+                : '${command.label} — ${command.did}',
             style: TextStyle(
               fontFamily: t.bodyFamily,
               fontSize: 12.5,
@@ -733,7 +762,7 @@ class _CookModeScreenState extends State<CookModeScreen> {
                 fontSize: 15,
                 height: 48,
                 onPressed: _step > 0
-                    ? () => _run(CookCommand.back, heard: '←')
+                    ? () => _run(CookCommand.back, trigger: CookTrigger.pointer)
                     : null,
               ),
               const SizedBox(width: 12),
@@ -742,7 +771,8 @@ class _CookModeScreenState extends State<CookModeScreen> {
                 icon: Icons.timer_outlined,
                 fontSize: 15,
                 height: 48,
-                onPressed: () => _run(CookCommand.startTimer, heard: 'T'),
+                onPressed: () =>
+                    _run(CookCommand.startTimer, trigger: CookTrigger.pointer),
               ),
               const SizedBox(width: 12),
               AppButton(
@@ -753,7 +783,8 @@ class _CookModeScreenState extends State<CookModeScreen> {
                 height: 48,
                 onPressed: _step == total - 1
                     ? _leave
-                    : () => _run(CookCommand.next, heard: 'space'),
+                    : () =>
+                          _run(CookCommand.next, trigger: CookTrigger.pointer),
               ),
             ],
           ),
