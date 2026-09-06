@@ -35,26 +35,27 @@ Future<void> runCloudSync(
     reviews: sync,
   ).run();
 
+  // A skip is worth interrupting for when waiting cannot clear it, or when
+  // waiting already failed to: the same file unreadable twice running is not a
+  // device caught mid-write. Recorded before the mounted check so a sync the
+  // user navigated away from still counts as the run that came before.
+  final worthSaying = outcome.skipWorthSaying(sync.lastSkippedCloudPosts);
+  sync.lastSkippedCloudPosts = outcome.skipped.map((s) => s.fileName).toSet();
+
   if (!context.mounted) return;
 
   // A sync that ran on app focus and found nothing should not interrupt;
   // one the user asked for should always answer.
-  if (quietWhenIdle && outcome.isEmpty && outcome.conflicts == 0) return;
+  final idleEnoughToStayQuiet =
+      outcome.conflicts == 0 &&
+      !outcome.unavailable &&
+      !outcome.moved &&
+      !worthSaying;
+  if (quietWhenIdle && idleEnoughToStayQuiet) return;
 
   ScaffoldMessenger.of(context)
     ..clearSnackBars()
     ..showSnackBar(SnackBar(content: Text(outcome.message)));
-
-  if (outcome.skipped.isNotEmpty) {
-    // Usually another device mid-write, which resolves itself. Worth saying
-    // once rather than never, because a file that never parses looks exactly
-    // the same from here.
-    debugPrint(
-      'Cloud sync skipped ${outcome.skipped.length} unreadable '
-      '${outcome.skipped.length == 1 ? 'post' : 'posts'}: '
-      '${outcome.skipped.map((s) => s.fileName).join(', ')}',
-    );
-  }
 }
 
 /// The Settings section for the cloud folder, on its own so tests can pump

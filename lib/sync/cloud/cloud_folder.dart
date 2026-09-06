@@ -166,4 +166,14 @@ class CloudSkip {
 
   final String fileName;
   final Object error;
+
+  /// Whether waiting will not help.
+  ///
+  /// A post from a newer build is refused for as long as this device stays on
+  /// this build, so it is worth saying the first time. Everything else — a
+  /// half-written file, a read that failed — is indistinguishable at the moment
+  /// it happens from a device caught mid-write, and usually heals by the next
+  /// run. Only repetition tells those apart, which is why the caller and not
+  /// this class decides when a transient skip is worth mentioning.
+  bool get isPermanent => error is PostTooNewException;
 }

@@ -37,8 +37,30 @@ class CloudOutcome {
   ///
   /// Publishing our own post does not count as activity: every run writes one,
   /// so counting it would mean the app never once said it was up to date.
-  bool get isEmpty =>
-      received == 0 && photosPulled == 0 && photosPushed == 0 && !unavailable;
+  ///
+  /// A skipped post does count. Without it a run that could not read the only
+  /// other device looks exactly like a quiet one, and the caller that stays
+  /// silent when idle would say nothing at all — which is how "already up to
+  /// date" came to be shown for a folder the app had failed to read.
+  bool get isEmpty => !moved && skipped.isEmpty && !unavailable;
+
+  /// Whether anything actually crossed, in either direction.
+  ///
+  /// Separate from [isEmpty] because a skip is neither movement nor silence,
+  /// and the caller deciding whether to interrupt needs to tell the two apart.
+  bool get moved => received > 0 || photosPulled > 0 || photosPushed > 0;
+
+  /// Whether this run's skips are worth interrupting an idle sync for, given
+  /// the file names [previouslySkipped] by the run before it.
+  ///
+  /// Kept here rather than in the widget so the policy can be tested without a
+  /// `BuildContext`. Two ways to earn a mention: a post this build can never
+  /// read, or a post that was already unreadable last time — a device caught
+  /// mid-write is gone by the next run, so a name that survives one is not a
+  /// race.
+  bool skipWorthSaying(Set<String> previouslySkipped) => skipped.any(
+    (s) => s.isPermanent || previouslySkipped.contains(s.fileName),
+  );
 
   String get message {
     if (unavailable) return 'That folder is not reachable right now.';
@@ -46,7 +68,27 @@ class CloudOutcome {
       return '$conflicts ${conflicts == 1 ? 'thing' : 'things'} changed in two '
           'places at once — pick which to keep.';
     }
-    if (isEmpty) {
+    // Said the first time, because waiting will not clear it: this device
+    // reads that post again on every run and refuses it again every time.
+    if (skipped.any((s) => s.isPermanent)) {
+      return 'A device is running a newer build than this one. Update here to '
+          'sync with it.';
+    }
+    final parts = <String>[
+      if (received > 0) '$received in',
+      if (photosPulled > 0) '$photosPulled ${_photos(photosPulled)} in',
+      if (photosPushed > 0) '$photosPushed ${_photos(photosPushed)} out',
+    ];
+    if (parts.isEmpty) {
+      // Checked before the two quiet answers below, so neither can claim to
+      // be up to date on a run that failed to read something.
+      if (skipped.isNotEmpty) {
+        return skipped.length == 1
+            ? 'Could not read one copy from another device. It may still be '
+                  'arriving.'
+            : 'Could not read ${skipped.length} copies from other devices. '
+                  'They may still be arriving.';
+      }
       return devicesRead == 0
           // Worth distinguishing: an empty folder usually means the
           // other device has not synced into it yet, which looks
@@ -54,15 +96,16 @@ class CloudOutcome {
           ? 'Nothing else has synced to that folder yet.'
           : 'Already up to date.';
     }
-    final parts = <String>[
-      if (received > 0) '$received in',
-      if (photosPulled > 0) '$photosPulled ${_photos(photosPulled)} in',
-      if (photosPushed > 0) '$photosPushed ${_photos(photosPushed)} out',
-    ];
-    return 'Synced · ${parts.join(' · ')}';
+    final line = 'Synced · ${parts.join(' · ')}';
+    if (skipped.isEmpty) return line;
+    // What did arrive is still worth stating; the gap is an addition to it,
+    // not a replacement for it.
+    return '$line · ${skipped.length} ${_copies(skipped.length)} unreadable';
   }
 
   static String _photos(int n) => n == 1 ? 'photo' : 'photos';
+
+  static String _copies(int n) => n == 1 ? 'copy' : 'copies';
 }
 
 /// Syncs through a folder someone else keeps in step.
