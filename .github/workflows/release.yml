@@ -77,8 +77,21 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup --no-progress -y
-          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { throw "ISCC not found at $iscc" }
+          # Where ISCC lands depends on how it was installed: Chocolatey puts
+          # it machine-wide under Program Files (x86) and shims it onto PATH,
+          # while winget installs it per-user. Look in all of them rather than
+          # pinning the one this runner happens to use today.
+          $iscc = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "$env:ProgramFiles\Inno Setup 6\ISCC.exe",
+            "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) {
+            $onPath = Get-Command ISCC.exe -ErrorAction SilentlyContinue
+            if ($onPath) { $iscc = $onPath.Source }
+          }
+          if (-not $iscc) { throw 'ISCC.exe not found after installing Inno Setup.' }
+          Write-Host "ISCC: $iscc"
           & $iscc "/DAppVersion=$env:APP_VERSION" windows\installer\recipe_book.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)." }
 
