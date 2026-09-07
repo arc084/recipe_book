@@ -215,6 +215,102 @@ void main() {
       expect(outcome.skipped, isEmpty, reason: 'in-progress writes are ignored');
     });
 
+    test('a skipped post is not an idle run', () async {
+      await syncFor(a).run();
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}truncated.json',
+      ).writeAsString('{"postVersion":1,"deviceId":"x","lib');
+
+      final outcome = await syncFor(b).run();
+      // The on-focus trigger stays silent when a run is empty, so counting
+      // this one as empty is exactly what hid the failure.
+      expect(outcome.isEmpty, isFalse);
+      expect(outcome.moved, isFalse, reason: 'nothing actually crossed');
+    });
+
+    test('an unreadable post is never called up to date', () async {
+      await syncFor(a).run();
+      await syncFor(b).run();
+      await syncFor(c).run();
+      // Nothing has changed since, so this run would otherwise be idle.
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}truncated.json',
+      ).writeAsString('not json at all');
+
+      final outcome = await syncFor(c).run();
+      expect(outcome.moved, isFalse);
+      expect(outcome.skipped, hasLength(1));
+      expect(outcome.message, isNot(contains('Already up to date')));
+      expect(outcome.message, contains('Could not read'));
+    });
+
+    test('an unreadable only post is not an empty folder', () async {
+      await cloud.ensure();
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}truncated.json',
+      ).writeAsString('{"postVersion":1,');
+
+      final outcome = await syncFor(a).run();
+      expect(outcome.devicesRead, 0);
+      // The file is sitting right there. Saying nothing has arrived would send
+      // the user to check the wrong device.
+      expect(outcome.message, isNot(contains('Nothing else has synced')));
+      expect(outcome.message, contains('Could not read'));
+    });
+
+    test('a newer build is permanent, a truncated file is not', () async {
+      await cloud.ensure();
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}future.json',
+      ).writeAsString(jsonEncode({'postVersion': kPostVersion + 1}));
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}truncated.json',
+      ).writeAsString('{"postVersion":1,');
+
+      final outcome = await syncFor(a).run();
+      final byName = {for (final s in outcome.skipped) s.fileName: s};
+      expect(byName['future.json']!.isPermanent, isTrue);
+      expect(byName['truncated.json']!.isPermanent, isFalse);
+      // Waiting cannot clear a newer build, so it is said the first time.
+      expect(outcome.skipWorthSaying(const {}), isTrue);
+      expect(outcome.message, contains('newer build'));
+    });
+
+    test('a transient skip speaks only when it happens twice', () async {
+      await cloud.ensure();
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}truncated.json',
+      ).writeAsString('{"postVersion":1,');
+
+      final first = await syncFor(a).run();
+      // Indistinguishable from a device caught mid-write, and a sync runs on
+      // every window focus — interrupting for this one would be noise.
+      expect(first.skipWorthSaying(const {}), isFalse);
+
+      final seen = first.skipped.map((s) => s.fileName).toSet();
+      final second = await syncFor(a).run();
+      // Still unreadable a run later, which no race survives.
+      expect(second.skipWorthSaying(seen), isTrue);
+    });
+
+    test('a run that skipped a post still publishes its own', () async {
+      await cloud.ensure();
+      await File(
+        '${cloud.devices.path}${Platform.pathSeparator}truncated.json',
+      ).writeAsString('{"postVersion":1,');
+
+      await syncFor(a).run();
+      // Withholding our own post because someone else's file would not parse
+      // would strand this device's changes over a fault that is not ours.
+      expect(
+        File(
+          '${cloud.devices.path}${Platform.pathSeparator}'
+          '${a.settings.deviceId}.json',
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
     test('an unreachable folder is reported, not thrown', () async {
       final gone = Directory('${cloudDir.path}${Platform.pathSeparator}nope');
       final outcome = await CloudSync(a, CloudFolder(gone)).run();

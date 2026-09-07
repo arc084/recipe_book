@@ -56,6 +56,18 @@ class SyncService extends ChangeNotifier implements SyncHost {
   String? error;
   SyncOutcome? lastOutcome;
 
+  /// Cloud posts the previous run could not read, by file name.
+  ///
+  /// A device caught mid-write, or a provider mid-download, produces a skip
+  /// that is gone by the next run — and syncing happens on every window focus,
+  /// so that is seconds away. Interrupting for one of those would teach the
+  /// user to ignore the message that matters. A file still unreadable a run
+  /// later is not a race, and that is the one worth saying out loud.
+  ///
+  /// Deliberately not persisted: a race cannot outlive a restart, so keeping
+  /// this in `settings.json` would buy nothing and cost a schema version.
+  Set<String> lastSkippedCloudPosts = const {};
+
   /// A merge paused on genuine ties, waiting for the user to pick sides.
   ///
   /// Survives [stop] on purpose: answering replays the snapshots held inside
