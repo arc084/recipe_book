@@ -104,8 +104,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = '${{ github.ref_name }}'
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -ne 0) {
+          # Asked as a listing rather than "view it and see if that failed".
+          # GitHub runs this step with $ErrorActionPreference='Stop', and on
+          # PowerShell 7.4+ a native command's non-zero exit throws — so
+          # probing with a command that is *expected* to fail would abort the
+          # release the very first time a tag has no release yet, which is
+          # every time. `release list` exits 0 whether or not it finds any.
+          $existing = gh release list --limit 100 --json tagName --jq '.[].tagName'
+          if ($existing -notcontains $tag) {
             gh release create $tag --title "Recipe Book $env:APP_VERSION" --generate-notes
           }
           gh release upload $tag `
