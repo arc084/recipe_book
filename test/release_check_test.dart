@@ -89,6 +89,53 @@ void main() {
       expect(update.sizeBytes, 24685000);
     });
 
+    test('offers the setup exe to an installed copy, never the zip', () {
+      // The whole point of the split: handing a zip to an installed copy
+      // would unpack a second, unregistered folder beside it.
+      final result = checkRelease(
+        '0.7.1',
+        release(
+          'v0.8.0',
+          assetNames: [
+            'recipe-book-0.8.0-windows-x64.zip',
+            'recipe-book-0.8.0-windows-x64-setup.exe',
+          ],
+        ),
+        UpdatePlatform.windowsSetup,
+      );
+      final update = (result as UpdateAvailable).update;
+      expect(update.artefact.path, endsWith('windows-x64-setup.exe'));
+    });
+
+    test('offers the zip to an unpacked copy when both are published', () {
+      // The mirror of the case above, and the reason the suffixes were
+      // chosen so one cannot end with the other.
+      final result = checkRelease(
+        '0.7.1',
+        release(
+          'v0.8.0',
+          assetNames: [
+            'recipe-book-0.8.0-windows-x64-setup.exe',
+            'recipe-book-0.8.0-windows-x64.zip',
+          ],
+        ),
+        UpdatePlatform.windows,
+      );
+      final update = (result as UpdateAvailable).update;
+      expect(update.artefact.path, endsWith('windows-x64.zip'));
+    });
+
+    test('an installed copy is told plainly when only the zip was published', () {
+      // Better to offer nothing than to offer the artefact that would break
+      // this install into two copies.
+      final result = checkRelease(
+        '0.7.1',
+        release('v0.8.0', assetNames: ['recipe-book-0.8.0-windows-x64.zip']),
+        UpdatePlatform.windowsSetup,
+      );
+      expect(result, isA<NotForThisPlatform>());
+    });
+
     test('a release with nothing for this platform says so by name', () {
       // Not silently "up to date" — the release exists, the build is missing.
       final result = checkRelease(

@@ -1,6 +1,8 @@
 # 2. A desktop installer waits for the update loop and real users
 
-Date: 2026-08-23. Status: accepted — deliberately deferred.
+Date: 2026-08-23. Status: superseded by [0003](0003-a-windows-installer.md) on
+2026-09-06 — both conditions below were met. Kept because the reasoning is what
+shaped the installer that replaced it.
 
 ## Context
 
