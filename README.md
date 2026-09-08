@@ -26,7 +26,7 @@ accounts, and there is no service to sign up to.
 
 ## Status
 
-**0.7.4 — pre-1.0 and under active development.** 1.0.0 is reserved for the
+**0.7.5 — pre-1.0 and under active development.** 1.0.0 is reserved for the
 release where every planned feature is built and debugged, so the version number
 itself tells you the app is still being built. Expect rough edges; see
 [Planned features and known bugs](#planned-features-and-known-bugs).
