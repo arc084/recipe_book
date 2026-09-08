@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The adaptive icon's background layer.
+
+     A colour rather than a bitmap: the handoff's android-adaptive-background
+     is a single flat rect at this value, so shipping five density variants of
+     a plain square would be five files that never differ.
+
+     Deliberately not themed, and deliberately not one of the in-app
+     colourways. The spec ships one icon for outside the app on both
+     platforms — the light mark on this orange ground — and it follows
+     neither the in-app theme setting nor the system light/dark one. So this
+     must not move to values-night. -->
+<resources>
+    <color name="ic_launcher_background">#f8621f</color>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive icon, used from Android 8 onwards.
+
+     Two layers rather than the finished tile, because the launcher applies its
+     own mask — circle, squircle, teardrop — and needs to crop the ground
+     itself. The foreground is a 108dp square holding a mark that stays inside
+     the 66% safe circle, so no mask can clip it.
+
+     The finished tile still ships as mipmap/ic_launcher.png for anything older
+     than this. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>
