@@ -130,15 +130,17 @@ void main() {
     expect(find.textContaining('failed'), findsNothing);
   });
 
-  testWidgets('a finished download hands off and shows the outcome',
+  testWidgets('a finished download waits to be told to install',
       (tester) async {
-    File? handedFile;
+    // Applying costs the user their window, so it is asked for. A download
+    // that installed itself the moment it finished would be a surprise.
+    var handedOff = false;
     await pumpRow(
       tester,
       _FakeUpdater(UpdateAvailable(available)),
       onDownloaded: (file, update) async {
-        handedFile = file;
-        return 'Handed to the Android installer.';
+        handedOff = true;
+        return 'Updating…';
       },
     );
 
@@ -147,11 +149,82 @@ void main() {
     await tester.tap(find.text('Download'));
     await tester.pumpAndSettle();
 
+    expect(handedOff, isFalse, reason: 'nothing may be applied unasked');
+    expect(find.textContaining('0.8.0 is ready to install'), findsOneWidget);
+    expect(find.text('Restart and update'), findsOneWidget);
+    expect(find.text('Later'), findsOneWidget);
+  });
+
+  testWidgets('confirming hands the artefact over and shows the outcome',
+      (tester) async {
+    File? handedFile;
+    await pumpRow(
+      tester,
+      _FakeUpdater(UpdateAvailable(available)),
+      onDownloaded: (file, update) async {
+        handedFile = file;
+        return 'Updating — this window will close and come back.';
+      },
+    );
+
+    await tester.tap(find.text('Check for updates'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Download'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Restart and update'));
+    await tester.pumpAndSettle();
+
     expect(handedFile, isNotNull);
     expect(
-      find.textContaining('Handed to the Android installer.'),
+      find.textContaining('this window will close and come back'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('Later leaves the running version alone', (tester) async {
+    var handedOff = false;
+    await pumpRow(
+      tester,
+      _FakeUpdater(UpdateAvailable(available)),
+      onDownloaded: (file, update) async {
+        handedOff = true;
+        return 'Updating…';
+      },
+    );
+
+    await tester.tap(find.text('Check for updates'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Download'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Later'));
+    await tester.pumpAndSettle();
+
+    expect(handedOff, isFalse);
+    expect(find.textContaining('Version 0.7.1'), findsOneWidget);
+  });
+
+  testWidgets('a hand-off that fails says so, and never reads as done',
+      (tester) async {
+    // The installer can refuse to start long after the download succeeded.
+    await pumpRow(
+      tester,
+      _FakeUpdater(UpdateAvailable(available)),
+      onDownloaded: (file, update) async =>
+          throw DownloadFailure('The installer could not be started: denied'),
+    );
+
+    await tester.tap(find.text('Check for updates'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Download'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Restart and update'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('The installer could not be started'),
+      findsOneWidget,
+    );
+    expect(find.text('Check for updates'), findsOneWidget);
   });
 
   testWidgets('a failed download is visible in plain words', (tester) async {

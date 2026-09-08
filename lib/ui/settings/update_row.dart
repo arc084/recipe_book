@@ -43,7 +43,23 @@ class UpdateRow extends StatefulWidget {
   State<UpdateRow> createState() => _UpdateRowState();
 }
 
-enum _Phase { idle, checking, upToDate, available, downloading, done, failed }
+enum _Phase {
+  idle,
+  checking,
+  upToDate,
+  available,
+  downloading,
+  /// Downloaded, not yet applied.
+  ///
+  /// Applying costs the user their window — on Windows the app closes and
+  /// reopens, on Android the system installer takes the screen — so it is
+  /// asked for rather than done the moment the bytes land. A download that
+  /// installed itself the instant it finished would be a surprise, and
+  /// updating is not urgent enough to earn one.
+  ready,
+  done,
+  failed,
+}
 
 class _UpdateRowState extends State<UpdateRow> {
   _Phase _phase = _Phase.idle;
@@ -53,6 +69,10 @@ class _UpdateRowState extends State<UpdateRow> {
   String? _message;
 
   AvailableUpdate? _update;
+
+  /// The artefact on disk, waiting for the user to say go.
+  File? _downloaded;
+
   DateTime? _checkedAt;
   int _received = 0;
   int _total = 0;
@@ -69,6 +89,17 @@ class _UpdateRowState extends State<UpdateRow> {
   String get _platformName => switch (widget.platform) {
     UpdatePlatform.windows || UpdatePlatform.windowsSetup => 'Windows',
     UpdatePlatform.android => 'Android',
+  };
+
+  /// What applying costs, said before it is spent rather than after.
+  String get _applySentence => switch (widget.platform) {
+    UpdatePlatform.android => 'Android will ask you to confirm the install.',
+    _ => 'The app closes and comes back on the new version.',
+  };
+
+  String get _applyLabel => switch (widget.platform) {
+    UpdatePlatform.android => 'Install',
+    _ => 'Restart and update',
   };
 
   Future<void> _check() async {
@@ -133,17 +164,38 @@ class _UpdateRowState extends State<UpdateRow> {
         },
         isCancelled: () => _cancelRequested,
       );
-      final outcome = await widget.onDownloaded(file, update);
       if (!mounted || generation != _generation) return;
       setState(() {
-        _phase = _Phase.done;
-        _message = outcome;
+        _phase = _Phase.ready;
+        _downloaded = file;
       });
     } on DownloadCancelled {
       if (!mounted || generation != _generation) return;
       // The user changed their mind; the offer simply stands again.
       setState(() => _phase = _Phase.available);
     } on DownloadFailure catch (failure) {
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _phase = _Phase.failed;
+        _message = failure.reason;
+      });
+    }
+  }
+
+  /// Hands the downloaded artefact to the platform, once the user has said so.
+  Future<void> _apply() async {
+    final generation = ++_generation;
+    try {
+      final outcome = await widget.onDownloaded(_downloaded!, _update!);
+      if (!mounted || generation != _generation) return;
+      setState(() {
+        _phase = _Phase.done;
+        _message = outcome;
+      });
+    } on DownloadFailure catch (failure) {
+      // The hand-off can fail on its own — an installer that will not start,
+      // an Android intent refused — and that must not read as a download
+      // problem or, worse, as success.
       if (!mounted || generation != _generation) return;
       setState(() {
         _phase = _Phase.failed;
@@ -235,6 +287,29 @@ class _UpdateRowState extends State<UpdateRow> {
           '${_total == 0 ? 0 : (_received / _total * 100).round()}%',
         ),
         [AppButton('Cancel', onPressed: _cancel)],
+      ),
+      _Phase.ready => (
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            status('${_update!.version} is ready to install'),
+            const SizedBox(height: 3),
+            status(_applySentence, color: t.textMuted),
+          ],
+        ),
+        [
+          // "Later" keeps the choice cheap. The artefact is forgotten rather
+          // than kept: a downloaded update parked across restarts would be a
+          // second kind of version to reason about, and downloading it again
+          // costs seconds.
+          AppButton('Later', onPressed: _cancel),
+          const SizedBox(width: 8),
+          AppButton(
+            _applyLabel,
+            kind: ButtonKind.primary,
+            onPressed: _apply,
+          ),
+        ],
       ),
       _Phase.done => (status(_message!), const <Widget>[]),
       _Phase.failed => (

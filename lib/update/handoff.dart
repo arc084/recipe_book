@@ -23,16 +23,29 @@ Future<String> handOffUpdate(File file, AvailableUpdate update) {
   throw DownloadFailure('No update hand-off exists for this platform.');
 }
 
-/// Starts the downloaded installer and gets out of its way.
+/// Runs the downloaded installer without showing it.
 ///
-/// The Inno script sets `CloseApplications`, so the restart manager closes
-/// this copy at the moment it needs the files — which is better than the app
-/// trying to exit from underneath the code that just launched the installer.
+/// An update is not a fresh install. Being made to click through a destination
+/// page, a tasks page and a close-applications page — to receive a version you
+/// already asked for, into the folder you are already in — is ceremony, and it
+/// is the one part of updating that should feel like nothing happened.
+///
+/// Windows cannot replace a running exe, so the restart is not avoidable; it
+/// is only made quiet. `/CLOSEAPPLICATIONS` lets the restart manager close
+/// this copy at the moment it needs the files, and `/RESTARTAPPLICATIONS`
+/// starts it again afterwards, so what the user sees is the window going and
+/// coming back on the new version.
 Future<String> _runSetup(File setup) async {
   try {
     await Process.start(
       setup.path,
-      const [],
+      const [
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/CLOSEAPPLICATIONS',
+        '/RESTARTAPPLICATIONS',
+      ],
       mode: ProcessStartMode.detached,
     );
   } on ProcessException catch (e) {
@@ -40,7 +53,7 @@ Future<String> _runSetup(File setup) async {
       'The installer could not be started: ${e.message}',
     );
   }
-  return 'The installer is open — follow it and it will replace this copy.';
+  return 'Updating — this window will close and come back on the new version.';
 }
 
 /// Hands the APK to the system installer through the app's own method
