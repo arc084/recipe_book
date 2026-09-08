@@ -26,7 +26,7 @@ accounts, and there is no service to sign up to.
 
 ## Status
 
-**0.7.3 — pre-1.0 and under active development.** 1.0.0 is reserved for the
+**0.7.4 — pre-1.0 and under active development.** 1.0.0 is reserved for the
 release where every planned feature is built and debugged, so the version number
 itself tells you the app is still being built. Expect rough edges; see
 [Planned features and known bugs](#planned-features-and-known-bugs).
@@ -80,7 +80,7 @@ development with C++" workload. Android builds need the Android SDK
 (compileSdk 36) and a JDK 17 or 21.
 
 ```bash
-flutter test        # 288 tests, no device required
+flutter test        # 297 tests, no device required
 flutter analyze
 ```
 
