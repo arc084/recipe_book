@@ -32,9 +32,16 @@ Future<String> handOffUpdate(File file, AvailableUpdate update) {
 ///
 /// Windows cannot replace a running exe, so the restart is not avoidable; it
 /// is only made quiet. `/CLOSEAPPLICATIONS` lets the restart manager close
-/// this copy at the moment it needs the files, and `/RESTARTAPPLICATIONS`
-/// starts it again afterwards, so what the user sees is the window going and
-/// coming back on the new version.
+/// this copy at the moment it needs the files, and `/RESTARTAPP=1` asks the
+/// installer to start it again afterwards, so what the user sees is the
+/// window going and coming back on the new version.
+///
+/// `/RESTARTAPPLICATIONS` is deliberately not used, and was the bug in 0.7.4:
+/// the Restart Manager only restarts applications that registered for it with
+/// `RegisterApplicationRestart`, which a Flutter Windows app never calls. It
+/// closed the app and then had nothing to bring back, so an update looked
+/// like the app quitting. `/RESTARTAPP` is our own switch, handled by a
+/// `[Run]` entry in the installer script.
 Future<String> _runSetup(File setup) async {
   try {
     await Process.start(
@@ -44,7 +51,7 @@ Future<String> _runSetup(File setup) async {
         '/SUPPRESSMSGBOXES',
         '/NORESTART',
         '/CLOSEAPPLICATIONS',
-        '/RESTARTAPPLICATIONS',
+        '/RESTARTAPP=1',
       ],
       mode: ProcessStartMode.detached,
     );

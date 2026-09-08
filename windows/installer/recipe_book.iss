@@ -73,12 +73,33 @@ begin
   end;
 end;
 
+// Whether the app asked to be started again once this is done.
+//
+// Only the in-app updater passes /RESTARTAPP=1, so a plain silent install —
+// someone scripting a first install, say — still finishes without launching
+// anything, which is what a silent install should do.
+//
+// This exists because /RESTARTAPPLICATIONS cannot do the job. The Restart
+// Manager only restarts applications that registered themselves for it with
+// RegisterApplicationRestart, and a Flutter Windows app never calls that. So
+// it happily closed the app and then had nothing to bring back.
+function RestartRequested: Boolean;
+begin
+  Result := ExpandConstant('{param:RESTARTAPP|0}') = '1';
+end;
+
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]
+; The checkbox on the finished page, for someone running Setup by hand.
 Filename: "{app}\{#AppExe}"; Description: "Open {#AppName}"; Flags: nowait postinstall skipifsilent
+
+; The updater's restart. Not `postinstall`, so it runs in a silent install
+; rather than waiting for a finished page that will never be shown, and
+; guarded by Check so only the updater triggers it.
+Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RestartRequested
 
 [UninstallDelete]
 ; The marker is written after install, so Inno does not track it and would
