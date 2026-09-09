@@ -123,7 +123,11 @@ screen.
   the app cannot open your provider's folder directly, so it keeps a relay
   folder that Syncthing — or any sync app — can carry to the desktop. You point
   that mover at it yourself, and uninstalling the app deletes the relay.
-- Android release builds are signed with debug keys.
+- **Android release builds are signed with debug keys** until a signing key
+  exists. The machinery is in — `android/key.properties` (see the `.example`
+  beside it) switches the build onto a real key, and the release workflow
+  refuses to publish an APK without one — but no key has been generated yet,
+  so no release ships an APK and the phone cannot update itself.
 
 ## Licence
 

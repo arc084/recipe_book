@@ -6,17 +6,16 @@
 # menu still points at the old version. The app tells which it is by the
 # marker the installer writes; see lib/update/install_flavour.dart.
 #
-# The Android APK is NOT built here, and that is deliberate. Release APKs are
-# still signed with the debug key (a TODO in android/app/build.gradle.kts),
-# and a fresh runner generates its own random ~/.android/debug.keystore — so a
-# CI-built APK would carry a different signature from the one on the phone and
-# Android would refuse to upgrade. Until there is a real signing key, build it
-# on the machine that signed the copies already out there:
+# The Android APK is built in its own job, on Linux, from a signing key held
+# in repository secrets. It used to be built by hand because release APKs were
+# debug-signed and a fresh runner generates its own random debug keystore — an
+# APK signed by one is refused as an update to an install signed by another.
+# With a real key that is no longer true. Until one exists the job skips
+# cleanly and the release ships Windows only; what it never does is fall back
+# to a debug signature and publish an APK that could not update anything.
 #
-#   flutter build apk --release
-#   mv build/app/outputs/flutter-apk/app-release.apk \
-#      recipe-book-<version>-android.apk
-#   gh release upload v<version> recipe-book-<version>-android.apk
+# The four secrets it needs: ANDROID_KEYSTORE_B64 (base64 of the .jks),
+# ANDROID_STORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
 name: release
 
 on:
@@ -118,3 +117,123 @@ jobs:
             "build\artefacts\recipe-book-$env:APP_VERSION-windows-x64.zip" `
             "build\installer\recipe-book-$env:APP_VERSION-windows-x64-setup.exe" `
             --clobber
+
+  # Kept separate from the Windows job because it needs a Linux runner and the
+  # signing key, and because it must not be able to publish a debug-signed APK
+  # by accident. `needs: windows` also settles who creates the release: the
+  # Windows job does, and this one only ever uploads to it.
+  android:
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # The same pin as ci.yml and the Windows job.
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+
+      - name: The tag and pubspec must agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          semver="$(sed -n 's/^version:[[:space:]]*\([^+]*\).*/\1/p' pubspec.yaml | tr -d '[:space:]')"
+          echo "tag: $tag   pubspec: $semver"
+          if [ "$tag" != "$semver" ]; then
+            echo "Tag '$tag' does not match pubspec version '$semver'." >&2
+            exit 1
+          fi
+          echo "APP_VERSION=$semver" >> "$GITHUB_ENV"
+
+      # Three outcomes, deliberately distinct:
+      #
+      #   none of the four set  -> skip, green. No key has been generated yet,
+      #                            which is a state the project is honestly in;
+      #                            failing here would paint every Windows
+      #                            release red for a reason that is not a fault.
+      #   some set              -> fail. Half a configuration is a mistake
+      #                            someone should hear about, not skip past.
+      #   all four set          -> sign and publish.
+      #
+      # What it must never do is fall back to the debug key. An APK must be
+      # signed with the same key as the install it replaces, so a debug-signed
+      # artefact published here could never update anything, while looking
+      # exactly like one that could.
+      - name: Restore the signing key
+        id: key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set=0
+          for v in "$KEYSTORE_B64" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            [ -n "$v" ] && set=$((set + 1))
+          done
+
+          if [ "$set" -eq 0 ]; then
+            echo "No Android signing secrets set — skipping the APK."
+            echo "This release publishes the Windows artefacts only."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$set" -ne 4 ]; then
+            echo "Only $set of 4 Android signing secrets are set." >&2
+            echo "Need ANDROID_KEYSTORE_B64, ANDROID_STORE_PASSWORD," >&2
+            echo "ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD." >&2
+            exit 1
+          fi
+
+          printf '%s' "$KEYSTORE_B64" | base64 -d > android/upload-keystore.jks
+          # Written rather than special-cased in Gradle, so CI and a desk build
+          # take exactly the same path through build.gradle.kts.
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+
+      - if: steps.key.outputs.skip != 'true'
+        run: flutter pub get
+
+      - if: steps.key.outputs.skip != 'true'
+        run: flutter build apk --release
+
+      # Proves the artefact is signed by the key we just restored, not by a
+      # debug key that slipped through. Without this the job's whole point
+      # rests on nothing having gone quietly wrong above.
+      - name: Verify it is signed with the release key
+        if: steps.key.outputs.skip != 'true'
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          signer="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          "$signer" verify --print-certs "$apk" | tee /tmp/certs.txt
+          if grep -qi "CN=Android Debug" /tmp/certs.txt; then
+            echo "APK is debug-signed; refusing to publish it." >&2
+            exit 1
+          fi
+
+      - name: Publish
+        if: steps.key.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          out="recipe-book-${APP_VERSION}-android.apk"
+          mv build/app/outputs/flutter-apk/app-release.apk "$out"
+          gh release upload "$GITHUB_REF_NAME" "$out" --clobber
+
+      # The runner is thrown away, but leaving a keystore lying around in a
+      # workspace is not a habit worth having.
+      - name: Shred the key
+        if: always()
+        run: rm -f android/upload-keystore.jks android/key.properties

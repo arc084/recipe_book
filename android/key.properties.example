@@ -1,0 +1,15 @@
+# Template. Copy to android/key.properties and fill in — that file is
+# gitignored and must never be committed.
+#
+# Generate the keystore first (once, and keep it safe forever — losing it
+# means no future build can update an install signed with it):
+#
+#   keytool -genkey -v -keystore upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# storeFile is resolved relative to the android/ directory.
+
+storeFile=upload-keystore.jks
+storePassword=
+keyAlias=upload
+keyPassword=
