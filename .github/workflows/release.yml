@@ -193,11 +193,17 @@ jobs:
             exit 1
           fi
 
-          printf '%s' "$KEYSTORE_B64" | base64 -d > android/upload-keystore.jks
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
           # Written rather than special-cased in Gradle, so CI and a desk build
           # take exactly the same path through build.gradle.kts.
+          #
+          # An absolute storeFile, because Gradle resolves a relative one
+          # against android/app/ — not android/, where key.properties lives.
+          # Pointing at android/upload-keystore.jks with a bare filename looks
+          # right and fails with "keystore not found" halfway through a
+          # release. Kept in RUNNER_TEMP so it is never inside the checkout.
           {
-            echo "storeFile=upload-keystore.jks"
+            echo "storeFile=$RUNNER_TEMP/upload-keystore.jks"
             echo "storePassword=$STORE_PASSWORD"
             echo "keyAlias=$KEY_ALIAS"
             echo "keyPassword=$KEY_PASSWORD"
@@ -236,4 +242,4 @@ jobs:
       # workspace is not a habit worth having.
       - name: Shred the key
         if: always()
-        run: rm -f android/upload-keystore.jks android/key.properties
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks" android/key.properties
