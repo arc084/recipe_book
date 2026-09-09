@@ -10,8 +10,9 @@
 # in repository secrets. It used to be built by hand because release APKs were
 # debug-signed and a fresh runner generates its own random debug keystore — an
 # APK signed by one is refused as an update to an install signed by another.
-# With a real key that is no longer true, and the job refuses to publish at all
-# rather than fall back to a debug signature.
+# With a real key that is no longer true. Until one exists the job skips
+# cleanly and the release ships Windows only; what it never does is fall back
+# to a debug signature and publish an APK that could not update anything.
 #
 # The four secrets it needs: ANDROID_KEYSTORE_B64 (base64 of the .jks),
 # ANDROID_STORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
@@ -151,25 +152,47 @@ jobs:
           fi
           echo "APP_VERSION=$semver" >> "$GITHUB_ENV"
 
-      # Refused rather than silently falling back to the debug key. An APK
-      # must be signed with the same key as the install it replaces, so a
-      # debug-signed artefact published here could never update anything and
-      # would be worse than no artefact at all.
+      # Three outcomes, deliberately distinct:
+      #
+      #   none of the four set  -> skip, green. No key has been generated yet,
+      #                            which is a state the project is honestly in;
+      #                            failing here would paint every Windows
+      #                            release red for a reason that is not a fault.
+      #   some set              -> fail. Half a configuration is a mistake
+      #                            someone should hear about, not skip past.
+      #   all four set          -> sign and publish.
+      #
+      # What it must never do is fall back to the debug key. An APK must be
+      # signed with the same key as the install it replaces, so a debug-signed
+      # artefact published here could never update anything, while looking
+      # exactly like one that could.
       - name: Restore the signing key
+        id: key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ] \
-             || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "Android signing secrets are missing; refusing to publish a" >&2
-            echo "debug-signed APK. Set ANDROID_KEYSTORE_B64," >&2
-            echo "ANDROID_STORE_PASSWORD, ANDROID_KEY_ALIAS and" >&2
-            echo "ANDROID_KEY_PASSWORD, or remove this job." >&2
+          set=0
+          for v in "$KEYSTORE_B64" "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD"; do
+            [ -n "$v" ] && set=$((set + 1))
+          done
+
+          if [ "$set" -eq 0 ]; then
+            echo "No Android signing secrets set — skipping the APK."
+            echo "This release publishes the Windows artefacts only."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$set" -ne 4 ]; then
+            echo "Only $set of 4 Android signing secrets are set." >&2
+            echo "Need ANDROID_KEYSTORE_B64, ANDROID_STORE_PASSWORD," >&2
+            echo "ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD." >&2
             exit 1
           fi
+
           printf '%s' "$KEYSTORE_B64" | base64 -d > android/upload-keystore.jks
           # Written rather than special-cased in Gradle, so CI and a desk build
           # take exactly the same path through build.gradle.kts.
@@ -180,14 +203,17 @@ jobs:
             echo "keyPassword=$KEY_PASSWORD"
           } > android/key.properties
 
-      - run: flutter pub get
+      - if: steps.key.outputs.skip != 'true'
+        run: flutter pub get
 
-      - run: flutter build apk --release
+      - if: steps.key.outputs.skip != 'true'
+        run: flutter build apk --release
 
       # Proves the artefact is signed by the key we just restored, not by a
       # debug key that slipped through. Without this the job's whole point
       # rests on nothing having gone quietly wrong above.
       - name: Verify it is signed with the release key
+        if: steps.key.outputs.skip != 'true'
         run: |
           apk=build/app/outputs/flutter-apk/app-release.apk
           signer="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
@@ -198,6 +224,7 @@ jobs:
           fi
 
       - name: Publish
+        if: steps.key.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
