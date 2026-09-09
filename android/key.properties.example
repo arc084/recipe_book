@@ -1,15 +1,26 @@
 # Template. Copy to android/key.properties and fill in — that file is
 # gitignored and must never be committed.
 #
-# Generate the keystore first (once, and keep it safe forever — losing it
-# means no future build can update an install signed with it):
+# Generate the keystore first. Do this once and keep it forever: an APK can
+# only update an install signed with the same key, so losing this file means
+# no future build can ever update the copies already out there.
 #
 #   keytool -genkey -v -keystore upload-keystore.jks \
 #     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 #
-# storeFile is resolved relative to the android/ directory.
+# storeFile: use an ABSOLUTE path, and keep the keystore OUTSIDE this
+# repository.
+#
+#   - Absolute, because a relative path is resolved against android/app/ —
+#     not android/, where this file lives — which is a good way to spend a
+#     release wondering where Gradle is looking.
+#   - Outside the repository, because *.jks is only gitignored: `git clean
+#     -xdf` deletes ignored files, and that would destroy the one file that
+#     cannot be regenerated.
+#
+# Forward slashes work fine on Windows.
 
-storeFile=upload-keystore.jks
+storeFile=C:/Users/you/keys/upload-keystore.jks
 storePassword=
 keyAlias=upload
 keyPassword=
