@@ -1,6 +1,8 @@
 # Plan: recipe editing on Android
 
-**Status:** planned, not started.
+**Status:** built. `lib/ui/mobile/mobile_recipe_edit.dart` over the shared
+`lib/ui/recipe/recipe_edit_controller.dart`, with `test/mobile_recipe_edit_test.dart`
+and `test/recipe_edit_controller_test.dart` covering it. Kept for the reasoning.
 
 ## Context
 
