@@ -176,3 +176,10 @@ Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RestartRequested
 ; %APPDATA% are deliberately untouched — uninstalling the app is not the same
 ; as throwing away a recipe collection.
 Type: files; Name: "{app}\installed-by-setup"
+
+; Inno removes only the folders it created. A folder that already existed at
+; install time — 0.7.2 was installed here by hand, and an uninstall that ran
+; with the app open left files behind — is never recorded as created, so it
+; survived every later uninstall as an empty "Recipe Book". Removing it only
+; when empty means nothing a user put there is touched.
+Type: dirifempty; Name: "{app}"
