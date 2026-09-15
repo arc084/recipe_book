@@ -375,18 +375,8 @@ class _GroceriesPageState extends State<GroceriesPage> {
   Widget _sidebar(BuildContext context, AppState app) {
     final t = context.tokens;
 
-    // Which recipes the list was built from, and how many lines each put on it.
-    final byRecipe = <String, int>{};
-    for (final g in app.library.groceries) {
-      for (final s in g.sources) {
-        if (s == 'Added by hand') continue;
-        byRecipe[s] = (byRecipe[s] ?? 0) + 1;
-      }
-    }
-
-    // Things used across several of this week's recipes that the user has but
-    // is likely to be getting through.
-    final runningLow = _runningLow(app);
+    final byRecipe = app.groceriesByRecipe();
+    final runningLow = app.runningLow();
 
     return Container(
       width: 282,
@@ -475,43 +465,6 @@ class _GroceriesPageState extends State<GroceriesPage> {
         ],
       ),
     );
-  }
-
-  /// Pantry items three or more of this week's planned recipes draw on, and
-  /// which are not already on the list.
-  List<PantryItem> _runningLow(AppState app) {
-    final today = DateTime.now();
-    final monday = app
-        .dayOnly(today)
-        .subtract(Duration(days: today.weekday - 1));
-
-    final counts = <String, int>{};
-    for (var i = 0; i < 7; i++) {
-      final day = monday.add(Duration(days: i));
-      for (final slot in MealSlot.values) {
-        final entry = app.planAt(day, slot);
-        if (entry == null) continue;
-        final recipe = app.recipe(entry.recipeId);
-        if (recipe == null) continue;
-        for (final line in recipe.ingredients) {
-          if (line.pantryItemId == null) continue;
-          counts[line.pantryItemId!] = (counts[line.pantryItemId!] ?? 0) + 1;
-        }
-      }
-    }
-
-    final onList = {
-      for (final g in app.library.groceries)
-        if (!g.checked) g.name.trim().toLowerCase(),
-    };
-
-    return counts.entries
-        .where((e) => e.value >= 3)
-        .map((e) => app.pantryItem(e.key))
-        .whereType<PantryItem>()
-        .where((p) => !onList.contains(p.name.trim().toLowerCase()))
-        .take(6)
-        .toList();
   }
 
   Widget _builtFromRow(

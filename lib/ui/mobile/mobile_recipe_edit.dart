@@ -126,40 +126,8 @@ class _MobileRecipeEditPageState extends State<MobileRecipeEditPage> {
 
   // ── Sheets ──────────────────────────────────────────────────────────────
 
-  /// The phone's stand-in for the desktop's [promptForText] dialog.
-  Future<String?> _promptInSheet({required String title, String? hint}) {
-    final field = TextEditingController();
-    return showPhoneSheet<String>(
-      context,
-      title: title,
-      builder: (sheet) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: AppTextField(
-                controller: field,
-                hint: hint,
-                height: 44,
-                autofocus: true,
-                onSubmitted: (v) => Navigator.of(sheet).pop(v),
-              ),
-            ),
-            const SizedBox(width: 10),
-            AppButton(
-              'Add',
-              kind: ButtonKind.primary,
-              height: 44,
-              onPressed: () => Navigator.of(sheet).pop(field.text),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(() {
-      // The sheet owns nothing after it closes.
-      Future.microtask(field.dispose);
-    });
-  }
+  Future<String?> _promptInSheet({required String title, String? hint}) =>
+      promptInPhoneSheet(context, title: title, hint: hint);
 
   Future<void> _pickMealType() async {
     final app = context.read<AppState>();
@@ -377,8 +345,7 @@ class _MobileRecipeEditPageState extends State<MobileRecipeEditPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           InkWell(
-            onTap: () =>
-                setState(() => _openComponentId = open ? null : c.id),
+            onTap: () => setState(() => _openComponentId = open ? null : c.id),
             child: Container(
               color: t.accent.withValues(alpha: 0.08),
               padding: const EdgeInsets.fromLTRB(14, 4, 6, 4),
@@ -603,8 +570,7 @@ class _IngredientRowState extends State<_IngredientRow> {
               height: 38,
               fontSize: 13.5,
               filled: false,
-              onChanged: (v) =>
-                  widget.controller.change(() => line.name = v),
+              onChanged: (v) => widget.controller.change(() => line.name = v),
             ),
           ),
           AppIconButton(

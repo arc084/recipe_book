@@ -623,6 +623,55 @@ class AppState extends ChangeNotifier {
     return checked.length;
   }
 
+  /// Which recipes the grocery list was built from, and how many lines each
+  /// put on it, in the order they first appear.
+  Map<String, int> groceriesByRecipe() {
+    final out = <String, int>{};
+    for (final g in library.groceries) {
+      for (final s in g.sources) {
+        if (s == 'Added by hand') continue;
+        out[s] = (out[s] ?? 0) + 1;
+      }
+    }
+    return out;
+  }
+
+  /// Pantry items three or more of this week's planned meals draw on, and that
+  /// are not already waiting on the list — what the user has but is likely to
+  /// be getting through.
+  List<PantryItem> runningLow({DateTime? now}) {
+    final today = dayOnly(now ?? DateTime.now());
+    final monday = today.subtract(Duration(days: today.weekday - 1));
+
+    final counts = <String, int>{};
+    for (var i = 0; i < 7; i++) {
+      final day = monday.add(Duration(days: i));
+      for (final slot in MealSlot.values) {
+        final entry = planAt(day, slot);
+        if (entry == null) continue;
+        final r = recipe(entry.recipeId);
+        if (r == null) continue;
+        for (final line in r.ingredients) {
+          if (line.pantryItemId == null) continue;
+          counts[line.pantryItemId!] = (counts[line.pantryItemId!] ?? 0) + 1;
+        }
+      }
+    }
+
+    final onList = {
+      for (final g in library.groceries)
+        if (!g.checked) g.name.trim().toLowerCase(),
+    };
+
+    return counts.entries
+        .where((e) => e.value >= 3)
+        .map((e) => pantryItem(e.key))
+        .whereType<PantryItem>()
+        .where((p) => !onList.contains(p.name.trim().toLowerCase()))
+        .take(6)
+        .toList();
+  }
+
   Aisle addAisle(String name) {
     final a = Aisle(
       id: newId(),
