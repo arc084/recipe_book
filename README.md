@@ -26,7 +26,7 @@ accounts, and there is no service to sign up to.
 
 ## Status
 
-**0.7.5 — pre-1.0 and under active development.** 1.0.0 is reserved for the
+**0.7.6 — pre-1.0 and under active development.** 1.0.0 is reserved for the
 release where every planned feature is built and debugged, so the version number
 itself tells you the app is still being built. Expect rough edges; see
 [Planned features and known bugs](#planned-features-and-known-bugs).
@@ -51,9 +51,10 @@ Either way the binaries are unsigned, so Windows SmartScreen warns the first
 time. Your recipes live in `%APPDATA%`, not the install folder, so switching
 between the two — or uninstalling — leaves them alone.
 
-**Android** installs from `…-android.apk`, which is currently signed with a
-**debug key**. That is fine for a build handed to you directly and not fine for
-a stranger downloading it, so treat it as household software until that changes.
+**Android** installs from `…-android.apk`, signed with the project's release
+key from 0.7.6 on, so each release can update the one before it in place.
+Copies installed from an earlier, debug-signed build cannot be updated by it:
+sync their data off first, uninstall, then install the new APK.
 
 ## Building
 
@@ -123,11 +124,6 @@ screen.
   the app cannot open your provider's folder directly, so it keeps a relay
   folder that Syncthing — or any sync app — can carry to the desktop. You point
   that mover at it yourself, and uninstalling the app deletes the relay.
-- **Android release builds are signed with debug keys** until a signing key
-  exists. The machinery is in — `android/key.properties` (see the `.example`
-  beside it) switches the build onto a real key, and the release workflow
-  refuses to publish an APK without one — but no key has been generated yet,
-  so no release ships an APK and the phone cannot update itself.
 
 ## Licence
 

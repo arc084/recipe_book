@@ -19,6 +19,10 @@
 #     cannot be regenerated.
 #
 # Forward slashes work fine on Windows.
+#
+# Passwords: keytool makes a PKCS12 keystore by default, and PKCS12 has one
+# password for both the store and the key in it, so it only asks once. Put
+# that same password in storePassword and keyPassword.
 
 storeFile=C:/Users/you/keys/upload-keystore.jks
 storePassword=
