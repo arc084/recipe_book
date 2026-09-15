@@ -88,6 +88,64 @@ begin
   Result := ExpandConstant('{param:RESTARTAPP|0}') = '1';
 end;
 
+// How many copies of the app are running from this install folder.
+//
+// Asked of WMI by full executable path, so an unpacked zip copy running from
+// somewhere else, or any other Flutter app, does not count. If WMI cannot be
+// reached the answer is 0 and the uninstall behaves as it always did — this
+// check exists to prevent a bad outcome, not to become a new way to fail.
+function RunningCopies: Integer;
+var
+  Locator, Service, Found: Variant;
+  Path: string;
+begin
+  Result := 0;
+  Path := ExpandConstant('{app}\{#AppExe}');
+  // WQL string literals escape backslashes and quotes with a backslash.
+  StringChangeEx(Path, '\', '\', True);
+  StringChangeEx(Path, '''', '\''', True);
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Service := Locator.ConnectServer('.', 'root\CIMV2');
+    Found := Service.ExecQuery(
+      'SELECT ProcessId FROM Win32_Process WHERE ExecutablePath = ''' + Path + '''');
+    Result := Found.Count;
+  except
+    Result := 0;
+  end;
+end;
+
+// Refuses to uninstall while the app is open.
+//
+// CloseApplications only applies to Setup; the uninstaller has no Restart
+// Manager step. A running exe and its loaded DLLs cannot be deleted, and a
+// per-user uninstaller has no right to queue them for deletion at reboot, so
+// they were simply left in the folder — while the uninstall entry, Start
+// menu entry and shortcut all went, making it look like a clean removal.
+//
+// It asks rather than closing the app itself. The app saves a moment after
+// each edit and has no save-on-exit, so killing it could lose the last
+// change; the user closing it goes through the app's own close.
+//
+// A silent uninstall cannot be asked, so it takes the default and stops,
+// leaving the install whole and exiting non-zero rather than half-removing it.
+function InitializeUninstall: Boolean;
+begin
+  Result := True;
+  while RunningCopies > 0 do
+  begin
+    if SuppressibleMsgBox(
+      '{#AppName} is still open. Close it, then choose Retry.' + #13#10 + #13#10 +
+      'Its program files cannot be removed while it is running. ' +
+      'Your recipes are not affected either way.',
+      mbError, MB_RETRYCANCEL, IDCANCEL) = IDCANCEL then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
