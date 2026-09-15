@@ -90,27 +90,38 @@ end;
 
 // How many copies of the app are running from this install folder.
 //
-// Asked of WMI by full executable path, so an unpacked zip copy running from
-// somewhere else, or any other Flutter app, does not count. If WMI cannot be
-// reached the answer is 0 and the uninstall behaves as it always did — this
-// check exists to prevent a bad outcome, not to become a new way to fail.
+// WMI is asked for processes by file name, and each one's full path is then
+// compared here, so an unpacked zip copy running from somewhere else does
+// not count. The path is deliberately not put in the query: a WQL literal
+// needs its backslashes doubled, and StringChangeEx in Inno's script engine
+// reports the replacements while leaving the string untouched. The query
+// was rejected as invalid, the exception below read that as "nothing
+// running", and the first version of this check let the uninstall through.
+//
+// If WMI cannot be reached the answer is still 0 and the uninstall behaves
+// as it always did, but it is logged now rather than swallowed.
 function RunningCopies: Integer;
 var
-  Locator, Service, Found: Variant;
-  Path: string;
+  Locator, Service, Found, Proc: Variant;
+  Exe: string;
+  I: Integer;
 begin
   Result := 0;
-  Path := ExpandConstant('{app}\{#AppExe}');
-  // WQL string literals escape backslashes and quotes with a backslash.
-  StringChangeEx(Path, '\', '\', True);
-  StringChangeEx(Path, '''', '\''', True);
+  Exe := ExpandConstant('{app}\{#AppExe}');
   try
     Locator := CreateOleObject('WbemScripting.SWbemLocator');
     Service := Locator.ConnectServer('.', 'root\CIMV2');
     Found := Service.ExecQuery(
-      'SELECT ProcessId FROM Win32_Process WHERE ExecutablePath = ''' + Path + '''');
-    Result := Found.Count;
+      'SELECT ExecutablePath FROM Win32_Process ' +
+      'WHERE Name = ''{#AppExe}'' AND ExecutablePath IS NOT NULL');
+    for I := 0 to Found.Count - 1 do
+    begin
+      Proc := Found.ItemIndex(I);
+      if CompareText(Proc.ExecutablePath, Exe) = 0 then
+        Result := Result + 1;
+    end;
   except
+    Log('Could not check for a running copy: ' + GetExceptionMessage);
     Result := 0;
   end;
 end;
