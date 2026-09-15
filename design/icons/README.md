@@ -48,7 +48,7 @@ from a larger one.
 | --- | --- |
 | `windows/runner/resources/app_icon.ico` | `png/mono-orange-` at 256, 48, 32, 16 — PNG-compressed entries |
 | `android/.../mipmap-*/ic_launcher.png` | the orange tile at 48, 72, 96, 144, 192 |
-| `android/.../mipmap-*/ic_launcher_foreground.png` | the light mark at 108dp: 108, 162, 216, 324, 432 |
+| `android/.../mipmap-*/ic_launcher_foreground.png` | the light mark drawn into the middle 72dp of a 108dp canvas: 108, 162, 216, 324, 432 |
 | `android/.../mipmap-anydpi-v26/ic_launcher.xml` | the two-layer adaptive icon |
 | `android/.../values/ic_launcher_background.xml` | `#f8621f` |
 
@@ -57,6 +57,12 @@ for the adaptive foreground are not shipped, but need no renderer: the new
 `android-adaptive-foreground.svg` is byte-identical to `app-icon-mono.svg`,
 which is the `android-foreground-*` ladder recoloured to `#e9e9ed` and shifted
 back by the 10 units that ladder sits high.
+
+**The foreground is the whole 512 tile shrunk into the middle 72dp, not
+stretched to all 108dp.** A launcher shows only that middle two-thirds and uses
+the rest for parallax and masking. Drawn to the full 108dp, the pot filled
+about 80% of the phone icon against 53% of the Windows tile. Inset by 18dp on
+each side, the two match.
 
 ## Two more things
 
