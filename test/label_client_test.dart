@@ -9,7 +9,7 @@ import 'package:recipe_book/labels/label_lookup.dart';
 /// in this file runs unless the user tapped search.
 void main() {
   const body =
-      '{"count": 1, "products": [{"product_name": "Chocolate Digestive", '
+      '{"count": 1, "hits": [{"product_name": "Chocolate Digestive", '
       '"nutriments": {"energy-kcal_100g": 495}}]}';
 
   test('identifies the app and sends the search terms', () async {
@@ -23,9 +23,9 @@ void main() {
 
     final refs = await client.search('digestive biscuits');
 
-    expect(seen.url.host, 'world.openfoodfacts.org');
-    expect(seen.url.queryParameters['search_terms'], 'digestive biscuits');
-    expect(seen.url.queryParameters['json'], '1');
+    expect(seen.url.host, 'search.openfoodfacts.org');
+    expect(seen.url.path, '/search');
+    expect(seen.url.queryParameters['q'], 'digestive biscuits');
     expect(seen.headers['user-agent'], startsWith('RecipeBook/'));
     expect(seen.headers['user-agent'], contains('github.com'));
     expect(refs.single.name, 'Chocolate Digestive');

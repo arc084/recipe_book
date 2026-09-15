@@ -87,14 +87,19 @@ List<LabelReference> parseSearch(String body) {
       'The reference database sent something unreadable.',
     );
   }
-  if (raw is! Map<String, dynamic> || raw['products'] is! List) {
+  // Search-a-licious lists results under `hits`; the older search API used
+  // `products`. The entries inside are the same product documents.
+  final results = raw is Map<String, dynamic>
+      ? (raw['hits'] ?? raw['products'])
+      : null;
+  if (results is! List) {
     throw const LabelSearchException(
       'The reference database sent something unreadable.',
     );
   }
 
   final out = <LabelReference>[];
-  for (final p in raw['products'] as List) {
+  for (final p in results) {
     if (p is! Map<String, dynamic>) continue;
     final name = (p['product_name'] as String?)?.trim();
     if (name == null || name.isEmpty) continue;
@@ -134,15 +139,22 @@ double? _number(dynamic v) =>
 double? _kcal(Map<String, dynamic> nutriments) {
   final kcal = _number(nutriments['energy-kcal_100g']);
   if (kcal != null) return kcal;
-  final kj = _number(nutriments['energy_100g']);
+  final kj =
+      _number(nutriments['energy-kj_100g']) ??
+      _number(nutriments['energy_100g']);
   return kj == null ? null : kj / 4.184;
 }
 
-/// OFF's `brands` is a comma-separated list; the first is the label's own.
+/// The label's own brand: the first of `brands`, which Search-a-licious sends
+/// as a list and the older API as one comma-separated string.
 String? _brand(dynamic brands) {
-  if (brands is! String) return null;
-  final first = brands.split(',').first.trim();
-  return first.isEmpty ? null : first;
+  final String? first = switch (brands) {
+    List<dynamic> l => l.whereType<String>().firstOrNull,
+    String s => s.split(',').first,
+    _ => null,
+  };
+  final trimmed = first?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
 /// Pack size: the structured pair when present, else parsed out of the
