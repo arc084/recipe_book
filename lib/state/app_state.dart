@@ -589,10 +589,22 @@ class AppState extends ChangeNotifier {
     _touchLibrary(g);
   }
 
+  /// Renames a grocery line.
+  ///
+  /// A real rename makes it a different thing from what any recipe asked for:
+  /// the recipe stops seeing it as covered, so the line should stop claiming
+  /// to have come from that recipe. It becomes something added by hand, and
+  /// loses its pantry link for the same reason. A change of case alone is a
+  /// correction, not a new item, and keeps both.
   void renameGrocery(String id, String name) {
     final g = library.groceries.where((x) => x.id == id).firstOrNull;
-    if (g == null || name.trim().isEmpty) return;
-    g.name = name.trim();
+    final next = name.trim();
+    if (g == null || next.isEmpty || next == g.name) return;
+    if (next.toLowerCase() != g.name.trim().toLowerCase()) {
+      g.sources = ['Added by hand'];
+      g.pantryItemId = null;
+    }
+    g.name = next;
     _touchLibrary(g);
   }
 
