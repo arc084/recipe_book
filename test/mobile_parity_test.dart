@@ -109,6 +109,27 @@ void main() {
       expect(app.runningLow(now: monday), isNot(contains(butter)));
     });
 
+    test('renaming a grocery drops the recipe it came from', () {
+      app.library.groceries.clear();
+      final pantry = app.addPantryItem('Test chicken');
+      final g = app.addGrocery(
+        'Test chicken',
+        source: 'Katsu',
+        pantryItemId: pantry.id,
+      );
+
+      // Case only: still the same thing the recipe asked for.
+      app.renameGrocery(g.id, 'test Chicken');
+      expect(g.sources, ['Katsu']);
+      expect(g.pantryItemId, pantry.id);
+
+      app.renameGrocery(g.id, 'Tofu');
+      expect(g.name, 'Tofu');
+      expect(g.sources, ['Added by hand']);
+      expect(g.pantryItemId, isNull);
+      expect(app.groceriesByRecipe(), isEmpty);
+    });
+
     test('groceriesByRecipe counts lines per source, ignoring hand-added', () {
       app.library.groceries.clear();
       app.addGrocery('a', source: 'Katsu');
