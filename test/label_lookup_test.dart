@@ -52,6 +52,34 @@ void main() {
     expect(parseSearch(fixture), hasLength(3));
   });
 
+  test('reads the Search-a-licious envelope', () {
+    // Trimmed from a real search.openfoodfacts.org answer: results under
+    // `hits`, `brands` as a list, and one product with energy only in kJ.
+    const body = '''
+{"hits": [
+  {"product_name": "Digestive biscuits", "brands": ["Asda"],
+   "quantity": "400g",
+   "nutriments": {"energy-kcal_100g": 488, "proteins_100g": 7.1,
+                  "fat_100g": 22, "carbohydrates_100g": 63,
+                  "sugars_100g": 17}},
+  {"product_name": "Oatcakes", "brands": [],
+   "nutriments": {"energy-kj_100g": 1841}}
+], "page": 1, "page_size": 8, "count": 2}
+''';
+    final refs = parseSearch(body);
+    expect(refs, hasLength(2));
+    expect(refs[0].brand, 'Asda');
+    expect(refs[0].caloriesPer100g, 488);
+    expect(refs[0].proteinPer100g, closeTo(7.1, 1e-9));
+    expect(refs[0].packAmount, 400);
+    expect(refs[1].brand, isNull);
+    expect(refs[1].caloriesPer100g, closeTo(1841 / 4.184, 1e-6));
+  });
+
+  test('an empty Search-a-licious result is empty, not an error', () {
+    expect(parseSearch('{"hits": [], "count": 0}'), isEmpty);
+  });
+
   test('an empty result set is empty, not an error', () {
     expect(parseSearch('{"count": 0, "products": []}'), isEmpty);
   });

@@ -17,8 +17,13 @@ class LabelClient {
   /// can close — and tests can hand in a fake.
   final http.Client Function() _httpClient;
 
+  // Search-a-licious, Open Food Facts' search service. The older full-text
+  // search at world.openfoodfacts.org/cgi/search.pl — and /api/v2/search
+  // beside it — began answering 503 to every request in September 2026,
+  // which surfaced in the macros editor as "The reference database answered
+  // 503." Same data, a different envelope: see parseSearch.
   static final Uri _endpoint = Uri.parse(
-    'https://world.openfoodfacts.org/cgi/search.pl',
+    'https://search.openfoodfacts.org/search',
   );
 
   /// Open Food Facts asks apps to identify themselves.
@@ -28,10 +33,7 @@ class LabelClient {
   Future<List<LabelReference>> search(String terms) async {
     final uri = _endpoint.replace(
       queryParameters: {
-        'search_terms': terms,
-        'search_simple': '1',
-        'action': 'process',
-        'json': '1',
+        'q': terms,
         'page_size': '8',
         'fields':
             'product_name,brands,nutriments,serving_size,quantity,'
