@@ -88,6 +88,75 @@ begin
   Result := ExpandConstant('{param:RESTARTAPP|0}') = '1';
 end;
 
+// How many copies of the app are running from this install folder.
+//
+// WMI is asked for processes by file name, and each one's full path is then
+// compared here, so an unpacked zip copy running from somewhere else does
+// not count. The path is deliberately not put in the query: a WQL literal
+// needs its backslashes doubled, and StringChangeEx in Inno's script engine
+// reports the replacements while leaving the string untouched. The query
+// was rejected as invalid, the exception below read that as "nothing
+// running", and the first version of this check let the uninstall through.
+//
+// If WMI cannot be reached the answer is still 0 and the uninstall behaves
+// as it always did, but it is logged now rather than swallowed.
+function RunningCopies: Integer;
+var
+  Locator, Service, Found, Proc: Variant;
+  Exe: string;
+  I: Integer;
+begin
+  Result := 0;
+  Exe := ExpandConstant('{app}\{#AppExe}');
+  try
+    Locator := CreateOleObject('WbemScripting.SWbemLocator');
+    Service := Locator.ConnectServer('.', 'root\CIMV2');
+    Found := Service.ExecQuery(
+      'SELECT ExecutablePath FROM Win32_Process ' +
+      'WHERE Name = ''{#AppExe}'' AND ExecutablePath IS NOT NULL');
+    for I := 0 to Found.Count - 1 do
+    begin
+      Proc := Found.ItemIndex(I);
+      if CompareText(Proc.ExecutablePath, Exe) = 0 then
+        Result := Result + 1;
+    end;
+  except
+    Log('Could not check for a running copy: ' + GetExceptionMessage);
+    Result := 0;
+  end;
+end;
+
+// Refuses to uninstall while the app is open.
+//
+// CloseApplications only applies to Setup; the uninstaller has no Restart
+// Manager step. A running exe and its loaded DLLs cannot be deleted, and a
+// per-user uninstaller has no right to queue them for deletion at reboot, so
+// they were simply left in the folder — while the uninstall entry, Start
+// menu entry and shortcut all went, making it look like a clean removal.
+//
+// It asks rather than closing the app itself. The app saves a moment after
+// each edit and has no save-on-exit, so killing it could lose the last
+// change; the user closing it goes through the app's own close.
+//
+// A silent uninstall cannot be asked, so it takes the default and stops,
+// leaving the install whole and exiting non-zero rather than half-removing it.
+function InitializeUninstall: Boolean;
+begin
+  Result := True;
+  while RunningCopies > 0 do
+  begin
+    if SuppressibleMsgBox(
+      '{#AppName} is still open. Close it, then choose Retry.' + #13#10 + #13#10 +
+      'Its program files cannot be removed while it is running. ' +
+      'Your recipes are not affected either way.',
+      mbError, MB_RETRYCANCEL, IDCANCEL) = IDCANCEL then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+end;
+
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{userdesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
@@ -107,3 +176,10 @@ Filename: "{app}\{#AppExe}"; Flags: nowait; Check: RestartRequested
 ; %APPDATA% are deliberately untouched — uninstalling the app is not the same
 ; as throwing away a recipe collection.
 Type: files; Name: "{app}\installed-by-setup"
+
+; Inno removes only the folders it created. A folder that already existed at
+; install time — 0.7.2 was installed here by hand, and an uninstall that ran
+; with the app open left files behind — is never recorded as created, so it
+; survived every later uninstall as an empty "Recipe Book". Removing it only
+; when empty means nothing a user put there is touched.
+Type: dirifempty; Name: "{app}"
