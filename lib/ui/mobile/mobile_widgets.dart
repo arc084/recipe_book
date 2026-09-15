@@ -5,6 +5,7 @@ import '../../state/app_state.dart';
 import '../../state/nav.dart';
 import '../../theme/tokens.dart';
 import '../settings/settings_page.dart';
+import '../widgets/primitives.dart';
 import '../widgets/version_badge.dart';
 
 /// The Library header: brand on the left, the read-only sync chip on the
@@ -303,6 +304,79 @@ Future<T?> showPhoneSheet<T>(
       ),
     ),
   );
+}
+
+/// Asks for one line of text in a sheet — the phone's stand-in for the
+/// desktop's `promptForText` dialog.
+///
+/// Returns null when dismissed. [initial] prefills the field for a rename.
+Future<String?> promptInPhoneSheet(
+  BuildContext context, {
+  required String title,
+  String? hint,
+  String? initial,
+  String confirmLabel = 'Add',
+}) {
+  return showPhoneSheet<String>(
+    context,
+    title: title,
+    builder: (sheet) =>
+        _PromptField(hint: hint, initial: initial, confirmLabel: confirmLabel),
+  );
+}
+
+/// The field inside [promptInPhoneSheet].
+///
+/// A widget of its own so the controller lives exactly as long as the field.
+/// Disposing it when the sheet's future completed was too early: the future
+/// completes as the sheet starts to slide away, and the closing animation
+/// still rebuilds the field against the disposed controller.
+class _PromptField extends StatefulWidget {
+  const _PromptField({this.hint, this.initial, required this.confirmLabel});
+
+  final String? hint;
+  final String? initial;
+  final String confirmLabel;
+
+  @override
+  State<_PromptField> createState() => _PromptFieldState();
+}
+
+class _PromptFieldState extends State<_PromptField> {
+  late final _field = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: AppTextField(
+              controller: _field,
+              hint: widget.hint,
+              height: 44,
+              autofocus: true,
+              onSubmitted: (v) => Navigator.of(context).pop(v),
+            ),
+          ),
+          const SizedBox(width: 10),
+          AppButton(
+            widget.confirmLabel,
+            kind: ButtonKind.primary,
+            height: 44,
+            onPressed: () => Navigator.of(context).pop(_field.text),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// A tappable row inside a phone sheet.

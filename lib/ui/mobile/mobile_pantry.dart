@@ -452,12 +452,19 @@ class MobilePantryItemPage extends StatelessWidget {
                   ],
                   const SizedBox(height: 22),
                   SectionLabel('Also known as'),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [for (final a in item.aliases) Tag(a)],
+                  const SizedBox(height: 4),
+                  Text(
+                    'An imported recipe naming any of these draws from this '
+                    'item.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 11.5,
+                      height: 1.4,
+                      color: t.textFaint,
+                    ),
                   ),
+                  const SizedBox(height: 10),
+                  _AliasTags(item: item),
                   const SizedBox(height: 22),
                   SectionLabel('Used in'),
                   const SizedBox(height: 10),
@@ -520,6 +527,88 @@ class MobilePantryItemPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// An item's other names, editable.
+///
+/// The desktop removes a name with a small × on its tag. That is too fine a
+/// target for a thumb and too easy to hit while scrolling, so here tapping a
+/// name opens a sheet that offers to remove it.
+class _AliasTags extends StatelessWidget {
+  const _AliasTags({required this.item});
+
+  final PantryItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final app = context.read<AppState>();
+
+    return Wrap(
+      spacing: 7,
+      runSpacing: 7,
+      children: [
+        for (final alias in item.aliases)
+          Tag(
+            alias,
+            trailing: Icon(Icons.close, size: 12, color: t.textMuted),
+            onTap: () => _confirmRemove(context, app, alias),
+          ),
+        Tag(
+          '＋ add',
+          style: TagStyle.outline,
+          onTap: () async {
+            final name = await promptInPhoneSheet(
+              context,
+              title: 'Another name for ${item.name}',
+              hint: 'choc chips',
+            );
+            if (name == null || name.trim().isEmpty) return;
+            if (item.matchesName(name.trim())) {
+              if (context.mounted) {
+                phoneToast(context, '${item.name} already answers to that');
+              }
+              return;
+            }
+            app.addAlias(item.id, name.trim());
+          },
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmRemove(
+    BuildContext context,
+    AppState app,
+    String alias,
+  ) {
+    return showPhoneSheet<void>(
+      context,
+      title: '“$alias”',
+      subtitle:
+          'Recipe lines already linked to ${item.name} stay linked. One '
+          'that only matched by saying “$alias” stops drawing on it.',
+      builder: (sheet) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SheetRow(
+            icon: Icons.delete_outline,
+            title: 'Remove this name',
+            accent: true,
+            onTap: () {
+              app.removeAlias(item.id, alias);
+              Navigator.of(sheet).pop();
+            },
+          ),
+          SheetRow(
+            icon: Icons.close,
+            title: 'Keep it',
+            onTap: () => Navigator.of(sheet).pop(),
+          ),
+        ],
       ),
     );
   }

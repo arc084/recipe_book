@@ -12,7 +12,9 @@ import 'mobile_widgets.dart';
 /// The Meal Plan on Android.
 ///
 /// The phone plans **a day at a time** rather than a week — same four slots,
-/// same figures, drawn from the same calculated macros.
+/// same figures, drawn from the same calculated macros. The desktop drags a
+/// meal to another cell to move it, or onto a filled one to swap; here the
+/// meal's menu does both, within the week on screen, as the grid does.
 class MobilePlanPage extends StatefulWidget {
   const MobilePlanPage({super.key});
 
@@ -56,14 +58,22 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+          padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
           child: Row(
             children: [
+              IconButton(
+                tooltip: 'Previous week',
+                icon: Icon(Icons.chevron_left, color: t.textSecondary),
+                onPressed: () => setState(
+                  () => _day = _day.subtract(const Duration(days: 7)),
+                ),
+              ),
               Expanded(
                 child: Text(
                   '${DateFormat('EEEE d MMMM').format(_day)} · '
                   '${totals.calories.round()} cal · '
                   '${totals.protein.round()}g',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: t.bodyFamily,
                     fontSize: 12.5,
@@ -71,9 +81,32 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
                   ),
                 ),
               ),
+              IconButton(
+                tooltip: 'Next week',
+                icon: Icon(Icons.chevron_right, color: t.textSecondary),
+                onPressed: () =>
+                    setState(() => _day = _day.add(const Duration(days: 7))),
+              ),
             ],
           ),
         ),
+        if (!_isThisWeek(app))
+          Center(
+            child: TextButton(
+              onPressed: () => setState(() {
+                final now = DateTime.now();
+                _day = DateTime(now.year, now.month, now.day);
+              }),
+              child: Text(
+                'Back to today',
+                style: TextStyle(
+                  fontFamily: t.bodyFamily,
+                  fontSize: 12.5,
+                  color: t.accent,
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -100,6 +133,12 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
         ),
       ],
     );
+  }
+
+  bool _isThisWeek(AppState app) {
+    final today = app.dayOnly(DateTime.now());
+    final monday = today.subtract(Duration(days: today.weekday - 1));
+    return app.dayOnly(_weekStart) == monday;
   }
 
   Widget _dayPill(BuildContext context, AppState app, DateTime day) {
@@ -238,8 +277,9 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.close, size: 17, color: t.textFaint),
-                onPressed: () => app.clearPlan(_day, slot),
+                tooltip: 'Move or remove',
+                icon: Icon(Icons.more_horiz, size: 19, color: t.textMuted),
+                onPressed: () => _mealMenu(context, app, recipe, slot),
               ),
             ],
           ),
@@ -382,6 +422,191 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
         app.setPlan(_day, slot, recipe.id);
         Navigator.of(sheetContext).pop();
       },
+    );
+  }
+
+  // ── Moving a meal ───────────────────────────────────────────────────────
+
+  Future<void> _mealMenu(
+    BuildContext context,
+    AppState app,
+    Recipe recipe,
+    MealSlot slot,
+  ) async {
+    final choice = await showPhoneSheet<String>(
+      context,
+      title: recipe.title,
+      subtitle:
+          '${DateFormat('EEEE').format(_day)} ${slot.label.toLowerCase()}',
+      builder: (sheet) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SheetRow(
+            icon: Icons.swap_vert,
+            title: 'Move or swap…',
+            detail: 'Another day or meal this week',
+            onTap: () => Navigator.of(sheet).pop('move'),
+          ),
+          SheetRow(
+            icon: Icons.close,
+            title: 'Remove from plan',
+            detail: 'The recipe stays in your library',
+            accent: true,
+            onTap: () => Navigator.of(sheet).pop('remove'),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+
+    if (choice == 'remove') {
+      app.clearPlan(_day, slot);
+    } else if (choice == 'move') {
+      await _moveSheet(context, app, recipe, slot);
+    }
+  }
+
+  /// Picks where in the week a meal goes. An empty slot is a move; a filled
+  /// one is a swap, and says so with the recipe it would trade places with.
+  Future<void> _moveSheet(
+    BuildContext context,
+    AppState app,
+    Recipe recipe,
+    MealSlot fromSlot,
+  ) async {
+    final fromDay = _day;
+    var target = _day;
+
+    final picked = await showPhoneSheet<({DateTime day, MealSlot slot})>(
+      context,
+      title: 'Move ${recipe.title}',
+      subtitle:
+          'From ${DateFormat('EEEE').format(fromDay)} '
+          '${fromSlot.label.toLowerCase()}',
+      builder: (sheet) => StatefulBuilder(
+        builder: (sheet, setSheet) {
+          final t = sheet.tokens;
+          return ListView(
+            shrinkWrap: true,
+            children: [
+              SizedBox(
+                height: 62,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    for (var i = 0; i < 7; i++)
+                      _targetDay(
+                        sheet,
+                        app,
+                        _weekStart.add(Duration(days: i)),
+                        selected:
+                            app.dayOnly(_weekStart.add(Duration(days: i))) ==
+                            app.dayOnly(target),
+                        onTap: () => setSheet(
+                          () => target = _weekStart.add(Duration(days: i)),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              for (final slot in MealSlot.values)
+                () {
+                  final here =
+                      app.dayOnly(target) == app.dayOnly(fromDay) &&
+                      slot == fromSlot;
+                  final entry = app.planAt(target, slot);
+                  final occupant = entry == null
+                      ? null
+                      : app.recipe(entry.recipeId);
+                  return Opacity(
+                    opacity: here ? 0.45 : 1,
+                    child: SheetRow(
+                      icon: here
+                          ? Icons.radio_button_checked
+                          : occupant == null
+                          ? Icons.arrow_forward
+                          : Icons.swap_horiz,
+                      title: slot.label,
+                      detail: here
+                          ? 'Where it is now'
+                          : occupant == null
+                          ? 'Empty — move it here'
+                          : 'Swap with ${occupant.title}',
+                      trailing: here
+                          ? null
+                          : Icon(
+                              Icons.chevron_right,
+                              size: 18,
+                              color: t.textFaint,
+                            ),
+                      onTap: here
+                          ? null
+                          : () => Navigator.of(
+                              sheet,
+                            ).pop((day: target, slot: slot)),
+                    ),
+                  );
+                }(),
+            ],
+          );
+        },
+      ),
+    );
+    if (picked == null || !context.mounted) return;
+
+    final swapped = app.planAt(picked.day, picked.slot) != null;
+    app.movePlan(fromDay, fromSlot, picked.day, picked.slot);
+    final where =
+        '${DateFormat('EEEE').format(picked.day)} '
+        '${picked.slot.label.toLowerCase()}';
+    phoneToast(context, swapped ? 'Swapped with $where' : 'Moved to $where');
+  }
+
+  Widget _targetDay(
+    BuildContext context,
+    AppState app,
+    DateTime day, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final t = context.tokens;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? t.accent.withValues(alpha: 0.14) : null,
+          borderRadius: t.brContainer,
+          border: Border.fromBorderSide(
+            BorderSide(color: selected ? t.accent : t.divider),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              DateFormat('EEE').format(day),
+              style: TextStyle(
+                fontFamily: t.bodyFamily,
+                fontSize: 11,
+                color: selected ? t.accent : t.textMuted,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              DateFormat('d').format(day),
+              style: TextStyle(
+                fontFamily: t.bodyFamily,
+                fontSize: 15,
+                color: selected ? t.accent : t.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
