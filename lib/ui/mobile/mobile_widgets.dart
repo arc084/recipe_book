@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
 import '../../state/nav.dart';
 import '../../theme/tokens.dart';
-import '../settings/settings_page.dart';
 import '../widgets/primitives.dart';
 import '../widgets/version_badge.dart';
 
@@ -42,9 +41,9 @@ class MobileHeader extends StatelessWidget {
           if (showSync)
             _SyncChip(
               paired: app.settings.devices.isNotEmpty,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const _MobileSettingsRoute()),
-              ),
+              // The same place the Settings tab goes — the chip is a
+              // shortcut to it, not a second copy of it.
+              onTap: () => context.read<NavController>().go(AppTab.settings),
             ),
         ],
       ),
@@ -88,26 +87,6 @@ class _SyncChip extends StatelessWidget {
                 color: t.textSecondary,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MobileSettingsRoute extends StatelessWidget {
-  const _MobileSettingsRoute();
-
-  @override
-  Widget build(BuildContext context) {
-    final t = context.tokens;
-    return Scaffold(
-      backgroundColor: t.ground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const MobileTopBar(title: 'Settings'),
-            const Expanded(child: SettingsPage(isPhone: true)),
           ],
         ),
       ),
