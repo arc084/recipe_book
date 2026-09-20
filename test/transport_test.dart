@@ -161,21 +161,7 @@ void main() {
       );
     });
 
-    test('a wrong code is refused and counts against the attempts', () async {
-      final offer = server.openPairing();
-      final greeting = await client.hello(base);
-      final wrong = offer.code == '000000' ? '111111' : '000000';
-
-      await expectLater(
-        () => client.pair(base, code: wrong, salt: greeting.salt!),
-        throwsA(
-          isA<SyncException>().having((e) => e.isPairingCode, 'code', isTrue),
-        ),
-      );
-      expect(server.offer!.attemptsLeft, 2);
-    });
-
-    test('three wrong answers burn the code', () async {
+    test('a wrong code is refused and the code stays on offer', () async {
       final offer = server.openPairing();
       final greeting = await client.hello(base);
       final wrong = offer.code == '000000' ? '111111' : '000000';
@@ -183,10 +169,17 @@ void main() {
       for (var i = 0; i < 3; i++) {
         await expectLater(
           () => client.pair(base, code: wrong, salt: greeting.salt!),
-          throwsA(isA<SyncException>()),
+          throwsA(
+            isA<SyncException>().having((e) => e.isPairingCode, 'code', isTrue),
+          ),
         );
+        // Typing it wrong costs another try, never the code itself.
+        expect(server.offer, isNotNull);
       }
-      // Six digits is only a million; without this it would be brute-forceable.
+
+      // And the right code still works afterwards.
+      await client.pair(base, code: offer.code, salt: greeting.salt!);
+      expect(host.pairedDevices, hasLength(1));
       expect(server.offer, isNull);
     });
 

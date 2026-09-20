@@ -238,8 +238,7 @@ class _ShowCodeDialogState extends State<_ShowCodeDialog> {
                 expired
                     ? 'That code has expired.'
                     : 'Expires in ${left.inMinutes}:'
-                          '${(left.inSeconds % 60).toString().padLeft(2, '0')}'
-                          ' · three tries',
+                          '${(left.inSeconds % 60).toString().padLeft(2, '0')}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: t.bodyFamily,
