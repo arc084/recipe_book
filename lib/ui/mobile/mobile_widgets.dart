@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -221,6 +223,63 @@ class TouchChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A tap and a double tap on the same target, with a shorter wait than
+/// Flutter's own.
+///
+/// `GestureDetector`'s double tap holds every single tap for
+/// `kDoubleTapTimeout` — 300ms — before it can be sure no second tap is
+/// coming, which is long enough to feel like the app hesitated. 200ms is
+/// still a comfortable double tap and reads as immediate.
+///
+/// There is no way to shorten the built-in one: `DoubleTapGestureRecognizer`
+/// reads the constant directly. So the tap is taken plainly here and the wait
+/// is this widget's own.
+class TapOrDoubleTap extends StatefulWidget {
+  const TapOrDoubleTap({
+    super.key,
+    required this.child,
+    required this.onTap,
+    required this.onDoubleTap,
+    this.window = const Duration(milliseconds: 200),
+  });
+
+  final Widget child;
+  final VoidCallback onTap;
+  final VoidCallback onDoubleTap;
+  final Duration window;
+
+  @override
+  State<TapOrDoubleTap> createState() => _TapOrDoubleTapState();
+}
+
+class _TapOrDoubleTapState extends State<TapOrDoubleTap> {
+  Timer? _pending;
+
+  @override
+  void dispose() {
+    _pending?.cancel();
+    super.dispose();
+  }
+
+  void _tapped() {
+    final pending = _pending;
+    if (pending != null) {
+      pending.cancel();
+      _pending = null;
+      widget.onDoubleTap();
+      return;
+    }
+    _pending = Timer(widget.window, () {
+      _pending = null;
+      widget.onTap();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      GestureDetector(onTap: _tapped, child: widget.child);
 }
 
 /// The bottom sheet the phone uses wherever the desktop opens a dialog.

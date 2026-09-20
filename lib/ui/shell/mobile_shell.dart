@@ -68,7 +68,7 @@ class _BottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(2, 8, 2, 10),
+          padding: const EdgeInsets.fromLTRB(2, 9, 2, 11),
           child: Row(
             children: [
               for (final tab in MobileShell._tabs)
@@ -113,14 +113,17 @@ class _BarItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: t.brContainer,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 7),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(tab.icon, size: 21, color: fg),
+                // A sixth larger than the four-tab bar carried. Five items
+                // make each one narrower, which reads as smaller unless the
+                // icon and label grow to meet it.
+                Icon(tab.icon, size: 25, color: fg),
                 if (badge != null)
                   Positioned(
                     right: -7,
@@ -147,7 +150,7 @@ class _BarItem extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Text(
               // The bar says "Plan"; the sidebar says "Meal Plan".
               tab == AppTab.plan ? 'Plan' : tab.label,
@@ -155,7 +158,7 @@ class _BarItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: t.bodyFamily,
-                fontSize: 10.5,
+                fontSize: 12,
                 color: fg,
               ),
             ),

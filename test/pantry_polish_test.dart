@@ -128,6 +128,25 @@ void main() {
     expect(app.pantryItem(basil.id), isNotNull);
   });
 
+  testWidgets('a single tap still opens the item, after a short wait', (
+    tester,
+  ) async {
+    app.addPantryItem('Basil');
+    await pumpPantry(tester);
+
+    final chip = find.descendant(
+      of: find.byType(LongPressDraggable<String>),
+      matching: find.text('Basil'),
+    );
+    await tester.tap(chip);
+    // Nothing yet: the tap is being given its moment to become a double.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('ALSO KNOWN AS'), findsNothing);
+
+    await drain(tester);
+    expect(find.text('ALSO KNOWN AS'), findsOneWidget);
+  });
+
   testWidgets('double-tapping a chip marks it run out, and back', (
     tester,
   ) async {
