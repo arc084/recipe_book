@@ -24,11 +24,12 @@ class PantryPage extends StatefulWidget {
 }
 
 class _PantryPageState extends State<PantryPage> {
-  final _add = TextEditingController();
+  final _search = TextEditingController();
+  String _query = '';
 
   @override
   void dispose() {
-    _add.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -93,25 +94,35 @@ class _PantryPageState extends State<PantryPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                AppTextField(
-                  controller: _add,
-                  hint: 'Add an ingredient…',
-                  icon: Icons.add,
-                  fontSize: 12.5,
-                  onSubmitted: (v) {
-                    if (v.trim().isEmpty) return;
-                    // Anything added lands in Pantry until it is moved.
-                    final item = app.addPantryItem(v.trim());
-                    _add.clear();
-                    context.read<NavController>().openPantryItem(item.id);
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        controller: _search,
+                        hint: 'Search the pantry…',
+                        icon: Icons.search,
+                        fontSize: 12.5,
+                        onChanged: (v) => setState(() => _query = v.trim()),
+                        onSubmitted: (_) => _addTyped(context),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    AppButton(
+                      '＋ Add',
+                      fontSize: 12,
+                      onPressed: _query.isEmpty
+                          ? null
+                          : () => _addTyped(context),
+                    ),
+                  ],
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(2, 8, 2, 0),
                   child: Text(
-                    'Click a chip to open it · drag to move it between '
-                    'groups · right-click for stock and removal. A ◦ means no '
-                    'macros yet; struck through means run out.',
+                    'Click a chip to open it · double-click to mark it run '
+                    'out or back in stock · drag to move it between groups · '
+                    'right-click for stock and removal. A ◦ means no macros '
+                    'yet; struck through means run out.',
                     style: TextStyle(
                       fontFamily: t.bodyFamily,
                       fontSize: 10.5,
@@ -127,6 +138,18 @@ class _PantryPageState extends State<PantryPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
               children: [
+                if (_query.isNotEmpty && _matches(app).isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10, left: 2),
+                    child: Text(
+                      'Nothing here called “$_query”. Add puts it in Pantry.',
+                      style: TextStyle(
+                        fontFamily: t.bodyFamily,
+                        fontSize: 12,
+                        color: t.textMuted,
+                      ),
+                    ),
+                  ),
                 for (final group in PantryGroup.values)
                   _group(context, app, group),
               ],
@@ -239,9 +262,38 @@ class _PantryPageState extends State<PantryPage> {
     );
   }
 
+  /// Adds what is typed, or opens the item already holding that name — the
+  /// pantry is what gives recipes their numbers, so a second row for one
+  /// ingredient splits its macros from half the recipes drawing on it.
+  void _addTyped(BuildContext context) {
+    final name = _search.text.trim();
+    if (name.isEmpty) return;
+    // Anything added lands in Pantry until it is moved.
+    final item = context.read<AppState>().addPantryItem(name);
+    _search.clear();
+    setState(() => _query = '');
+    context.read<NavController>().openPantryItem(item.id);
+  }
+
+  /// Everything the search box matches, by name or by another known name.
+  List<PantryItem> _matches(AppState app) => _query.isEmpty
+      ? app.pantry.items
+      : app.pantry.items
+            .where(
+              (i) => i.allNames.any(
+                (n) => n.toLowerCase().contains(_query.toLowerCase()),
+              ),
+            )
+            .toList();
+
   Widget _group(BuildContext context, AppState app, PantryGroup group) {
     final t = context.tokens;
-    final items = app.pantry.items.where((i) => i.group == group).toList();
+    final all = app.pantry.items.where((i) => i.group == group).toList();
+    final matched = _matches(app);
+    final items = all.where(matched.contains).toList();
+    // While searching, a group with no match is noise; the rest of the time
+    // its heading is the drop target.
+    if (_query.isNotEmpty && items.isEmpty) return const SizedBox.shrink();
 
     return DragTarget<String>(
       onAcceptWithDetails: (d) => app.movePantryItem(d.data, group),
@@ -343,6 +395,11 @@ class _PantryPageState extends State<PantryPage> {
               ),
             ),
       onTap: () => nav.openPantryItem(item.id),
+      // The same second meaning as the phone's double tap: stock is the one
+      // thing changed often enough to deserve not opening the item, and
+      // nothing is thrown away by it.
+      onDoubleTap: () =>
+          context.read<AppState>().setInStock(item.id, !item.inStock),
     );
 
     return Draggable<String>(

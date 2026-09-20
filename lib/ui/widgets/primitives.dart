@@ -20,6 +20,7 @@ class Tag extends StatelessWidget {
     this.style = TagStyle.neutral,
     this.trailing,
     this.onTap,
+    this.onDoubleTap,
     this.dense = false,
     this.struckThrough = false,
     this.faded = false,
@@ -29,6 +30,9 @@ class Tag extends StatelessWidget {
   final TagStyle style;
   final Widget? trailing;
   final VoidCallback? onTap;
+
+  /// A second meaning for the same chip — the pantry toggles stock with it.
+  final VoidCallback? onDoubleTap;
   final bool dense;
 
   /// For a pantry item that has been run out of — listed, but not on hand.
@@ -82,9 +86,10 @@ class Tag extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return child;
+    if (onTap == null && onDoubleTap == null) return child;
     return _Hoverable(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       borderRadius: BorderRadius.circular(radius),
       child: child,
     );
@@ -265,12 +270,14 @@ class _Hoverable extends StatefulWidget {
   const _Hoverable({
     required this.child,
     this.onTap,
+    this.onDoubleTap,
     this.borderRadius,
     this.hoverOpacity = 0.07,
   });
 
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onDoubleTap;
   final BorderRadius? borderRadius;
   final double hoverOpacity;
 
@@ -292,6 +299,7 @@ class _HoverableState extends State<_Hoverable> {
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
         onTap: widget.onTap,
+        onDoubleTap: widget.onDoubleTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: _hover
