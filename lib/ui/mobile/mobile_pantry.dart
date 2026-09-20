@@ -14,6 +14,11 @@ import 'mobile_widgets.dart';
 /// The same three groups in the same order, chips draggable between them, and
 /// Edit macros is here too — it is the one writing screen on both platforms,
 /// because it is done with the packet in hand.
+///
+/// The box at the top searches; ＋ adds what is typed. A pantry of forty is
+/// past the point where every ingredient is on screen, so typing a name most
+/// often means "where is it", and an add box answered that by making a second
+/// row for something already there.
 class MobilePantryPage extends StatefulWidget {
   const MobilePantryPage({super.key});
 
@@ -22,12 +27,31 @@ class MobilePantryPage extends StatefulWidget {
 }
 
 class _MobilePantryPageState extends State<MobilePantryPage> {
-  final _add = TextEditingController();
+  final _search = TextEditingController();
+  String _query = '';
 
   @override
   void dispose() {
-    _add.dispose();
+    _search.dispose();
     super.dispose();
+  }
+
+  /// Adds what is typed, or opens the item that already answers to it.
+  void _add(BuildContext context) {
+    final name = _search.text.trim();
+    if (name.isEmpty) return;
+    final app = context.read<AppState>();
+    final existing = app.pantry.items
+        .where((i) => i.matchesName(name))
+        .firstOrNull;
+
+    final item = app.addPantryItem(name);
+    _search.clear();
+    setState(() => _query = '');
+    if (existing != null) {
+      phoneToast(context, '${item.name} is already in your pantry');
+    }
+    _openItem(context, item);
   }
 
   @override
@@ -42,18 +66,31 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
         const MobileHeader(title: 'Pantry', showSync: false),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: AppTextField(
-            controller: _add,
-            hint: 'Add an ingredient…',
-            icon: Icons.add,
-            height: 46,
-            fontSize: 14,
-            onSubmitted: (v) {
-              if (v.trim().isEmpty) return;
-              final item = app.addPantryItem(v.trim());
-              _add.clear();
-              _openItem(context, item);
-            },
+          child: Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  controller: _search,
+                  hint: 'Search the pantry…',
+                  icon: Icons.search,
+                  height: 46,
+                  fontSize: 14,
+                  onChanged: (v) => setState(() => _query = v.trim()),
+                  onSubmitted: (_) => _add(context),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 52,
+                child: AppButton(
+                  '＋',
+                  kind: ButtonKind.primary,
+                  height: 46,
+                  fontSize: 18,
+                  onPressed: _query.isEmpty ? null : () => _add(context),
+                ),
+              ),
+            ],
           ),
         ),
         if (needing.isNotEmpty)
@@ -111,6 +148,18 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
             children: [
               for (final group in PantryGroup.values)
                 _group(context, app, group),
+              if (_query.isNotEmpty && _matches(app).isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 18, left: 2),
+                  child: Text(
+                    'Nothing here called “$_query”. ＋ adds it.',
+                    style: TextStyle(
+                      fontFamily: t.bodyFamily,
+                      fontSize: 13,
+                      color: t.textMuted,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -138,9 +187,24 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
     );
   }
 
+  /// Everything the search box currently matches, by name or by any of an
+  /// item's other known names.
+  List<PantryItem> _matches(AppState app) => _query.isEmpty
+      ? app.pantry.items
+      : app.pantry.items
+            .where(
+              (i) => i.allNames.any(
+                (n) => n.toLowerCase().contains(_query.toLowerCase()),
+              ),
+            )
+            .toList();
+
   Widget _group(BuildContext context, AppState app, PantryGroup group) {
     final t = context.tokens;
-    final items = app.pantry.items.where((i) => i.group == group).toList();
+    final items = _matches(app).where((i) => i.group == group).toList();
+    // A group with nothing matching is noise while searching, but its own
+    // heading is the drop target the rest of the time.
+    if (_query.isNotEmpty && items.isEmpty) return const SizedBox.shrink();
 
     return DragTarget<String>(
       onAcceptWithDetails: (d) => app.movePantryItem(d.data, group),
@@ -242,6 +306,19 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
       childWhenDragging: Opacity(opacity: 0.3, child: chip),
       child: GestureDetector(
         onTap: () => _openItem(context, item),
+        // Marking something run out while putting the shopping away should
+        // not cost a screen each time. Nothing is thrown away by it, so a
+        // stray double tap is undone by another.
+        onDoubleTap: () {
+          final app = context.read<AppState>();
+          app.setInStock(item.id, !item.inStock);
+          phoneToast(
+            context,
+            item.inStock
+                ? '${item.name} marked run out'
+                : '${item.name} back in stock',
+          );
+        },
         child: chip,
       ),
     );

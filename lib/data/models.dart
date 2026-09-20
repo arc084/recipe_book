@@ -104,9 +104,14 @@ extension StampedJson on Map<String, dynamic> {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /// Where a pantry item is kept. Anything added lands in [pantry] until moved.
+/// The three places food is kept, in the order the screens list them.
+///
+/// Pantry leads because it is where anything added lands and where most of a
+/// library's ingredients live. The order is display only — every record
+/// stores `name`, so moving a value here rewrites nothing on disk.
 enum PantryGroup {
-  fridge('Fridge'),
   pantry('Pantry'),
+  fridge('Fridge'),
   freezer('Freezer');
 
   const PantryGroup(this.label);

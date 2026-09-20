@@ -365,7 +365,20 @@ class AppState extends ChangeNotifier {
 
   // ── Pantry ──────────────────────────────────────────────────────────────
 
+  /// Adds an ingredient, or hands back the one already holding that name.
+  ///
+  /// The pantry is what gives every recipe its numbers, so two rows for one
+  /// ingredient is not a tidiness problem: macros get entered on one of them
+  /// and half the recipes draw on the other. Matching goes through
+  /// [PantryItem.matchesName], so "choc chips" finds the Chocolate chips it
+  /// is already an alias of. Callers that want to know can compare the
+  /// returned id with what they had.
   PantryItem addPantryItem(String name, {PantryGroup? group}) {
+    final existing = pantry.items
+        .where((i) => i.matchesName(name))
+        .firstOrNull;
+    if (existing != null) return existing;
+
     // Anything added lands in Pantry until it is moved.
     final item = PantryItem(
       id: newId(),
