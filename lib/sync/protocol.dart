@@ -281,7 +281,6 @@ class PairingOffer {
     required this.code,
     required this.salt,
     required this.expiresAt,
-    this.attemptsLeft = 3,
   });
 
   factory PairingOffer.fresh({DateTime? now}) => PairingOffer(
@@ -294,23 +293,22 @@ class PairingOffer {
   final String salt;
   final DateTime expiresAt;
 
-  /// Six digits is a million possibilities — thin on its own. The expiry, the
-  /// attempt limit and single use are what make it hold up, and none of them
-  /// is optional.
-  int attemptsLeft;
-
-  bool isLive(DateTime now) => attemptsLeft > 0 && now.isBefore(expiresAt);
+  /// What is left guarding a six-digit code: it is worth something for two
+  /// minutes, on the local network only, and is spent the moment it works.
+  /// There is deliberately no limit on wrong answers — mistyping a code
+  /// should cost another try, not a trip back to the other device for a new
+  /// one.
+  bool isLive(DateTime now) => now.isBefore(expiresAt);
 
   Duration remaining(DateTime now) {
     final left = expiresAt.difference(now);
     return left.isNegative ? Duration.zero : left;
   }
 
-  /// Checks a joining device's proof, spending an attempt whether or not it
-  /// was right.
+  /// Checks a joining device's proof. A wrong answer changes nothing; the
+  /// code stands until it is used or expires.
   bool accepts(String proof, {required DateTime now}) {
     if (!isLive(now)) return false;
-    attemptsLeft--;
     return constantTimeEquals(pairingProof(code: code, salt: salt), proof);
   }
 }

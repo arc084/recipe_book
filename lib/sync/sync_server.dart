@@ -190,15 +190,9 @@ class SyncServer {
     }
 
     if (!offer.accepts(proof, now: now)) {
-      // Say how many tries are left rather than leaving the user guessing why
-      // it stopped working.
-      await _error(
-        request,
-        HttpStatus.forbidden,
-        'that code did not match · ${offer.attemptsLeft} left',
-      );
-      // Three wrong answers burn the code. A new one has to be shown.
-      if (offer.attemptsLeft <= 0) _offer = null;
+      // The code stays on offer: a mistyped digit should cost another try
+      // rather than a walk back to the other device for a fresh code.
+      await _error(request, HttpStatus.forbidden, 'that code did not match');
       return;
     }
 
