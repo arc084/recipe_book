@@ -8,12 +8,14 @@ import '../mobile/mobile_groceries.dart';
 import '../mobile/mobile_library.dart';
 import '../mobile/mobile_pantry.dart';
 import '../mobile/mobile_plan.dart';
+import '../mobile/mobile_settings.dart';
 
 /// The Android frame: no title bar, no sidebar, a bottom tab bar.
 ///
-/// Four tabs, in the same order as the desktop sidebar's first four. Settings
-/// is reached from the Library header rather than taking a fifth tab — the
-/// design's bar has four.
+/// Five tabs, in the desktop sidebar's order. Settings was reached from the
+/// Library header, which put pairing, the cloud folder and updates behind a
+/// chip that looked like a status read-out; the bar is where people go
+/// looking for it.
 class MobileShell extends StatelessWidget {
   const MobileShell({super.key});
 
@@ -22,6 +24,7 @@ class MobileShell extends StatelessWidget {
     AppTab.pantry,
     AppTab.groceries,
     AppTab.plan,
+    AppTab.settings,
   ];
 
   @override
@@ -38,6 +41,7 @@ class MobileShell extends StatelessWidget {
           AppTab.pantry => const MobilePantryPage(),
           AppTab.groceries => const MobileGroceriesPage(),
           AppTab.plan => const MobilePlanPage(),
+          AppTab.settings => const MobileSettingsPage(),
           _ => const MobileLibraryPage(),
         },
       ),
@@ -64,7 +68,7 @@ class _BottomBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+          padding: const EdgeInsets.fromLTRB(2, 9, 2, 11),
           child: Row(
             children: [
               for (final tab in MobileShell._tabs)
@@ -109,14 +113,17 @@ class _BarItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: t.brContainer,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 7),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
               clipBehavior: Clip.none,
               children: [
-                Icon(tab.icon, size: 21, color: fg),
+                // A sixth larger than the four-tab bar carried. Five items
+                // make each one narrower, which reads as smaller unless the
+                // icon and label grow to meet it.
+                Icon(tab.icon, size: 25, color: fg),
                 if (badge != null)
                   Positioned(
                     right: -7,
@@ -143,13 +150,15 @@ class _BarItem extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Text(
               // The bar says "Plan"; the sidebar says "Meal Plan".
               tab == AppTab.plan ? 'Plan' : tab.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontFamily: t.bodyFamily,
-                fontSize: 11,
+                fontSize: 12,
                 color: fg,
               ),
             ),

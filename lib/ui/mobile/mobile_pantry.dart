@@ -304,11 +304,11 @@ class _MobilePantryPageState extends State<MobilePantryPage> {
       data: item.id,
       feedback: Material(color: Colors.transparent, child: chip),
       childWhenDragging: Opacity(opacity: 0.3, child: chip),
-      child: GestureDetector(
+      // Marking something run out while putting the shopping away should not
+      // cost a screen each time. Nothing is thrown away by it, so a stray
+      // double tap is undone by another.
+      child: TapOrDoubleTap(
         onTap: () => _openItem(context, item),
-        // Marking something run out while putting the shopping away should
-        // not cost a screen each time. Nothing is thrown away by it, so a
-        // stray double tap is undone by another.
         onDoubleTap: () {
           final app = context.read<AppState>();
           app.setInStock(item.id, !item.inStock);

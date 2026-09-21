@@ -81,7 +81,7 @@ development with C++" workload. Android builds need the Android SDK
 (compileSdk 36) and a JDK 17 or 21.
 
 ```bash
-flutter test        # 311 tests, no device required
+flutter test        # 315 tests, no device required
 flutter analyze
 ```
 
