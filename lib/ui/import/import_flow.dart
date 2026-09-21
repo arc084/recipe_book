@@ -864,7 +864,7 @@ class _MatchScreenState extends State<_MatchScreen> {
             note:
                 '$linked linked · '
                 '${_matches.length - linked - unmatched} kept separate · '
-                '$unmatched saved recipe-only and flagged',
+                '$unmatched new to the pantry',
             primaryLabel: 'Save to library',
             onPrimary: () => _commit(context, app),
           ),
@@ -929,7 +929,7 @@ class _MatchScreenState extends State<_MatchScreen> {
                   switch (match.kind) {
                     _MatchKind.linked => item?.name ?? 'linked',
                     _MatchKind.branded => 'its own ingredient',
-                    _MatchKind.unmatched => 'recipe-only · flagged',
+                    _MatchKind.unmatched => 'new pantry item · run out',
                   },
                   style: switch (match.kind) {
                     _MatchKind.linked => TagStyle.accent,

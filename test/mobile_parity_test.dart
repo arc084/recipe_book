@@ -126,8 +126,12 @@ void main() {
       app.renameGrocery(g.id, 'Tofu');
       expect(g.name, 'Tofu');
       expect(g.sources, ['Added by hand']);
-      expect(g.pantryItemId, isNull);
       expect(app.groceriesByRecipe(), isEmpty);
+      // A different name is a different thing: it points at the pantry item
+      // that name means, which the pantry had not met before.
+      expect(g.pantryItemId, isNot(pantry.id));
+      expect(app.pantryItem(g.pantryItemId!)!.name, 'Tofu');
+      expect(app.pantryItem(g.pantryItemId!)!.inStock, isFalse);
     });
 
     test('groceriesByRecipe counts lines per source, ignoring hand-added', () {

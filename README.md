@@ -16,8 +16,12 @@ you'd like. Yes most of the text was written by AI, I'll update this whole text 
 
 The pieces are connected on purpose. Macros come from your pantry items, not
 from a recipe's own listed figures, so correcting one number in the pantry
-updates every recipe drawing on it. Missing ingredients flow from a recipe into
-groceries, and checking them off puts them back in the pantry.
+updates every recipe drawing on it. **Every ingredient is a pantry item** —
+naming one in a recipe or putting it on the shopping list adds it to the
+pantry, marked as run out until you buy it — so there is one list of what the
+kitchen deals in rather than three that drift apart. Missing ingredients flow
+from a recipe into groceries, and checking them off puts them back in the
+pantry.
 
 Your data is **yours and local by default**: two plain JSON files on your own
 machine. Cloud storage is an *optional hook* — point it at a folder your own
@@ -81,7 +85,7 @@ development with C++" workload. Android builds need the Android SDK
 (compileSdk 36) and a JDK 17 or 21.
 
 ```bash
-flutter test        # 325 tests, no device required
+flutter test        # 335 tests, no device required
 flutter analyze
 ```
 
