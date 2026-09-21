@@ -66,6 +66,11 @@ class SyncServer {
   /// The code currently on offer, if any.
   PairingOffer? get offer => _offer;
 
+  /// Whether a code is on offer *and* still good. What the device announces
+  /// on the network, asked afresh each time: an offer that has expired is no
+  /// longer something to advertise.
+  bool get isOffering => _offer?.isLive(_now().toUtc()) ?? false;
+
   /// Starts listening on an ephemeral port.
   ///
   /// [address] is loopback in tests and any-IPv4 in the app.

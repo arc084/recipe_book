@@ -45,12 +45,27 @@ class Discovery {
     required this.deviceName,
     required this.platform,
     DateTime Function()? now,
-  }) : _now = now ?? DateTime.now;
+    this.broadcastAddress = '255.255.255.255',
+    this.announceEvery = const Duration(seconds: 2),
+    this.port = kDiscoveryPort,
+    int? sendToPort,
+  }) : _sendToPort = sendToPort ?? port,
+       _now = now ?? DateTime.now;
 
   final String deviceId;
   final String deviceName;
   final String platform;
   final DateTime Function() _now;
+
+  /// Test seams, all four. A test cannot broadcast to the subnet and expect
+  /// the packet back, waiting two seconds a tick makes for a slow test, and
+  /// two of these in one process cannot share a port — so a test gives the
+  /// listener and the announcer one each and points the announcer at the
+  /// listener's.
+  final String broadcastAddress;
+  final Duration announceEvery;
+  final int port;
+  final int _sendToPort;
 
   RawDatagramSocket? _socket;
   Timer? _announcer;
@@ -70,12 +85,18 @@ class Discovery {
   /// Announcing is what a device does while it is *offering* to be paired
   /// with or synced to; a device that only wants to find others can listen
   /// without saying anything.
-  Future<void> start({int? servingPort, bool pairing = false}) async {
+  ///
+  /// [isPairing] is asked again before every announcement rather than read
+  /// once. A code lives two minutes and announcements outlive it: a flag
+  /// fixed at start meant a device went on saying "I am showing a code" long
+  /// after it stopped being true, and the joiner found out by typing six
+  /// digits and being told there was no code on offer.
+  Future<void> start({int? servingPort, bool Function()? isPairing}) async {
     if (_socket != null) return;
 
     final socket = await RawDatagramSocket.bind(
       InternetAddress.anyIPv4,
-      kDiscoveryPort,
+      port,
       reuseAddress: true,
       reusePort: false,
     );
@@ -90,12 +111,9 @@ class Discovery {
     });
 
     if (servingPort != null) {
-      void announce() => _announce(servingPort, pairing);
+      void announce() => _announce(servingPort, isPairing?.call() ?? false);
       announce();
-      _announcer = Timer.periodic(
-        const Duration(seconds: 2),
-        (_) => announce(),
-      );
+      _announcer = Timer.periodic(announceEvery, (_) => announce());
     }
   }
 
@@ -127,7 +145,7 @@ class Discovery {
       }),
     );
     try {
-      socket.send(message, InternetAddress('255.255.255.255'), kDiscoveryPort);
+      socket.send(message, InternetAddress(broadcastAddress), _sendToPort);
     } on SocketException {
       // A network that refuses broadcast is a reason to fall back to typing an
       // address, not a reason to fail loudly.
