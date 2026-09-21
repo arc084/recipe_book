@@ -12,6 +12,7 @@ import '../../theme/tokens.dart';
 import '../../update/handoff.dart';
 import '../../update/install_flavour.dart';
 import '../../update/updater.dart';
+import '../library/library_page.dart' show promptForText;
 import '../widgets/primitives.dart';
 import 'cloud_folder_section.dart';
 import 'conflict_review.dart';
@@ -111,7 +112,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // ── Label search ────────────────────────────────────────────────────────
- 
+
   Widget _labelSearchSection(BuildContext context, AppState app) {
     final t = context.tokens;
     final on = app.settings.autofillFromLabels;
@@ -232,6 +233,56 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               );
             },
+          ),
+          // What the other device calls this one. Above the paired list
+          // because it is the first thing worth getting right: every device
+          // ships as "This phone" or "This PC", and two of either in one
+          // house are indistinguishable in the list.
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Panel(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'This device',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${app.settings.deviceName} · how it appears on '
+                          'your other devices',
+                          style: TextStyle(
+                            fontFamily: t.bodyFamily,
+                            fontSize: 11.5,
+                            color: t.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AppButton(
+                    'Rename',
+                    fontSize: 12,
+                    onPressed: () async {
+                      final name = await promptForText(
+                        context,
+                        title: 'Name this device',
+                        hint: 'Kitchen laptop',
+                        initial: app.settings.deviceName,
+                        confirmLabel: 'Save',
+                      );
+                      if (name == null || name.trim().isEmpty) return;
+                      app.setDeviceName(name);
+                    },
+                  ),
+                ],
+              ),
+            ),
           ),
           Panel(
             padding: const EdgeInsets.all(16),
