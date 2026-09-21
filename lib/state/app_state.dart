@@ -374,9 +374,7 @@ class AppState extends ChangeNotifier {
   /// is already an alias of. Callers that want to know can compare the
   /// returned id with what they had.
   PantryItem addPantryItem(String name, {PantryGroup? group}) {
-    final existing = pantry.items
-        .where((i) => i.matchesName(name))
-        .firstOrNull;
+    final existing = pantry.items.where((i) => i.matchesName(name)).firstOrNull;
     if (existing != null) return existing;
 
     // Anything added lands in Pantry until it is moved.
@@ -944,6 +942,19 @@ class AppState extends ChangeNotifier {
 
   void setAutofillFromLabels(bool on) {
     settings.autofillFromLabels = on;
+    _touchSettings();
+  }
+
+  /// Renames this device.
+  ///
+  /// The name is what the *other* device lists in its paired devices and
+  /// writes on every cloud post, so two phones in one house are worth telling
+  /// apart. It is per-device and never synced — `settings.json` is the one
+  /// file that stays put.
+  void setDeviceName(String name) {
+    final next = name.trim();
+    if (next.isEmpty || next == settings.deviceName) return;
+    settings.deviceName = next;
     _touchSettings();
   }
 

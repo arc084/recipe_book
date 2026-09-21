@@ -47,7 +47,8 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
         const MobileHeader(title: 'Meal plan', showSync: false),
         // A week strip, so a day is one tap away.
         SizedBox(
-          height: 62,
+          // Room for the day, its number and today's dot.
+          height: 72,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -180,6 +181,19 @@ class _MobilePlanPageState extends State<MobilePlanPage> {
                     : isToday
                     ? t.textStrong
                     : t.textSecondary,
+              ),
+            ),
+            // Today is marked whether or not it is the day being looked at:
+            // a slightly brighter number said "today" only next to the
+            // others, and the strip scrolls a week at a time now.
+            const SizedBox(height: 2),
+            Container(
+              key: isToday ? const Key('today-marker') : null,
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isToday ? t.accent : Colors.transparent,
               ),
             ),
           ],
