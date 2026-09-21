@@ -275,7 +275,27 @@ class AppState extends ChangeNotifier {
     } else {
       library.recipes[i] = edited;
     }
+    _linkToPantry(edited);
     _touchLibrary(edited);
+  }
+
+  /// Gives every ingredient line a pantry item, making the ones the pantry
+  /// has never heard of.
+  ///
+  /// A branded line is left alone on purpose: it carries its own macros and
+  /// is deliberately not the same thing as the pantry item it resembles —
+  /// see `relinkIngredientsToPantry`, which skips them for the same reason.
+  void _linkToPantry(Recipe r) {
+    final made = <PantryItem>[];
+    for (final line in r.ingredients) {
+      if (line.isBranded || line.pantryItemId != null) continue;
+      if (line.name.trim().isEmpty) continue;
+      final before = pantry.items.length;
+      final item = pantryItemFor(line.name);
+      line.pantryItemId = item.id;
+      if (pantry.items.length != before) made.add(item);
+    }
+    if (made.isNotEmpty) _touchPantry(made);
   }
 
   void deleteRecipe(String id) {
@@ -373,7 +393,11 @@ class AppState extends ChangeNotifier {
   /// [PantryItem.matchesName], so "choc chips" finds the Chocolate chips it
   /// is already an alias of. Callers that want to know can compare the
   /// returned id with what they had.
-  PantryItem addPantryItem(String name, {PantryGroup? group}) {
+  PantryItem addPantryItem(
+    String name, {
+    PantryGroup? group,
+    bool inStock = true,
+  }) {
     final existing = pantry.items.where((i) => i.matchesName(name)).firstOrNull;
     if (existing != null) return existing;
 
@@ -382,10 +406,26 @@ class AppState extends ChangeNotifier {
       id: newId(),
       name: name.trim(),
       group: group ?? PantryGroup.pantry,
+      inStock: inStock,
     );
     pantry.items.add(item);
     _touchPantry(item);
     return item;
+  }
+
+  /// The pantry item a name refers to, made if the pantry has never heard
+  /// of it.
+  ///
+  /// Groceries and recipe lines both go through here, so the pantry is the
+  /// list of everything the kitchen deals in rather than a third list beside
+  /// them. Something arriving this way is **out of stock**: a line on the
+  /// shopping list is there because you do not have it, and an ingredient the
+  /// pantry has never heard of is not something to assume is in the cupboard.
+  /// That also keeps what recipes say: before this, an unmatched line counted
+  /// as missing, and an out-of-stock one counts as missing too.
+  PantryItem pantryItemFor(String name) {
+    final existing = pantry.items.where((i) => i.matchesName(name)).firstOrNull;
+    return existing ?? addPantryItem(name, inStock: false);
   }
 
   void movePantryItem(String id, PantryGroup group) {
@@ -548,6 +588,7 @@ class AppState extends ChangeNotifier {
             : '${existing.quantity} + $quantity';
       }
       if (!alreadyFrom) existing.sources.add(source);
+      existing.pantryItemId ??= pantryItemFor(existing.name).id;
       _touchLibrary(existing);
       return existing;
     }
@@ -558,7 +599,8 @@ class AppState extends ChangeNotifier {
       aisleId: aisleId ?? _defaultAisleFor(name).id,
       quantity: quantity,
       sources: [source],
-      pantryItemId: pantryItemId,
+      // Nothing reaches the list without a pantry item behind it.
+      pantryItemId: pantryItemId ?? pantryItemFor(name).id,
     );
     library.groceries.add(item);
     _touchLibrary(item);
@@ -613,7 +655,9 @@ class AppState extends ChangeNotifier {
     if (g == null || next.isEmpty || next == g.name) return;
     if (next.toLowerCase() != g.name.trim().toLowerCase()) {
       g.sources = ['Added by hand'];
-      g.pantryItemId = null;
+      // A different name is a different thing, so it points at the pantry
+      // item that name means — made, if the pantry has not met it.
+      g.pantryItemId = pantryItemFor(next).id;
     }
     g.name = next;
     _touchLibrary(g);
