@@ -187,7 +187,12 @@ class SyncService extends ChangeNotifier implements SyncHost {
       deviceName: deviceName,
       platform: platform,
     );
-    await _discovery!.start(servingPort: port, pairing: true);
+    // Asked per announcement, so the device stops advertising a code the
+    // moment it expires rather than two minutes after anyone could use it.
+    await _discovery!.start(
+      servingPort: port,
+      isPairing: () => server.isOffering,
+    );
 
     phase = SyncPhase.listening;
     notifyListeners();
